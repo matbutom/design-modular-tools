@@ -44,6 +44,30 @@
         </section>
 
         <section class="panel">
+          <h2>Modo pincel</h2>
+          <div class="control-row">
+            <label>Activar</label>
+            <label class="toggle-switch">
+              <input type="checkbox" id="toggleBrush">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+          <div id="brushControls" style="display: none; margin-top: 12px;">
+            <div class="control-row">
+              <label>Color</label>
+              <input type="color" id="brushColor" class="color-input" value="#000000">
+            </div>
+            <div class="control-row">
+              <label>Forma</label>
+              <select id="brushShape" class="select"></select>
+            </div>
+            <div class="hint" style="margin-top: 8px;">
+              Arrastra el mouse para pintar. Shift para borrar.
+            </div>
+          </div>
+        </section>
+
+        <section class="panel">
           <h2>Celda seleccionada</h2>
           <div id="cellControls" class="cell-controls" style="display: none;">
             <div class="control-row">
