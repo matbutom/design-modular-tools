@@ -1264,3 +1264,315 @@ body {
     grid-template-columns: 1fr;
   }
 }
+/* ===================================================
+   EDITOR APP LAYOUT  (body.editor-app — index.html)
+   =================================================== */
+
+body.editor-app {
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Top bar ── */
+.topbar {
+  display: flex;
+  align-items: center;
+  height: 40px;
+  padding: 0 20px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  gap: 20px;
+}
+
+.topbar-title {
+  font-size: 11px;
+  font-weight: 500;
+  color: #999;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  white-space: nowrap;
+}
+
+.topbar-nav {
+  display: flex;
+  gap: 2px;
+  margin-left: auto;
+}
+
+.topbar-nav .nav-link {
+  padding: 5px 12px;
+  font-size: 11px;
+}
+
+/* ── Main area: editor + alphabet ── */
+.editor-main {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+  background: var(--bg);
+}
+
+body.editor-app .editor {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  min-height: 0;
+  gap: 0;
+  background: var(--bg);
+}
+
+body.editor-app .editor-header {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 10px;
+  flex-shrink: 0;
+}
+
+body.editor-app .canvas-container {
+  /* Square: fit viewport height minus chrome, capped by container width */
+  width: min(calc(100vh - 180px), calc(100% - 16px));
+  aspect-ratio: 1;
+  height: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+}
+
+/* Alphabet panel: fill full height */
+body.editor-app .alphabet {
+  border-left: 1px solid var(--border);
+  overflow: visible; /* keep toggle button visible outside bounds */
+  display: flex;
+  flex-direction: column;
+}
+
+body.editor-app .alphabet-content {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden; /* clip grid, not the toggle */
+}
+
+body.editor-app .alphabet-content h2 {
+  flex-shrink: 0;
+}
+
+/* Hide moved editor-actions */
+body.editor-app .editor-actions {
+  display: none;
+}
+
+/* ── Bottom bar ── */
+.bottombar {
+  display: flex;
+  align-items: center;
+  height: 56px;
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+  overflow-x: auto;
+  background: var(--bg);
+}
+
+.bar-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 14px;
+  height: 100%;
+  border-right: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.bar-group-preview {
+  flex: 1;
+  min-width: 140px;
+  max-width: 300px;
+}
+
+.bar-actions {
+  border-right: none;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.bar-label {
+  font-size: 10px;
+  color: #bbb;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+.bar-hint {
+  font-size: 16px;
+  color: #ddd;
+  font-weight: 300;
+}
+
+.bar-sub {
+  font-size: 10px;
+  color: #999;
+  white-space: nowrap;
+}
+
+/* Compact steppers inside bottom bar */
+.bottombar .stepper {
+  padding: 2px 4px;
+  gap: 4px;
+}
+
+.bottombar .btn-stepper {
+  width: 20px;
+  height: 20px;
+  font-size: 13px;
+}
+
+.bottombar .stepper span {
+  min-width: 14px;
+  font-size: 12px;
+}
+
+/* Letter nav */
+.bottombar .letter-nav {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 0;
+}
+
+.bottombar .btn-arrow {
+  width: 26px;
+  height: 26px;
+  font-size: 12px;
+}
+
+.bottombar .select-letter {
+  height: 26px;
+  width: 60px;
+  padding: 2px 4px;
+  font-size: 12px;
+  margin-bottom: 0;
+}
+
+/* Buttons in bottom bar */
+.bottombar .btn {
+  padding: 5px 10px;
+  font-size: 11px;
+}
+
+/* Compact select for brush/cell */
+.select-sm {
+  height: 26px;
+  padding: 2px 6px;
+  font-size: 12px;
+  width: auto;
+  min-width: 80px;
+  margin-bottom: 0;
+}
+
+/* Color input in bottom bar */
+.bottombar .color-input {
+  width: 26px;
+  height: 26px;
+}
+
+/* brushControls: show as flex row when visible */
+.bottombar #brushControls:not([style*="none"]) {
+  display: flex !important;
+  align-items: center;
+  gap: 6px;
+}
+.bottombar #brushControls {
+  margin-top: 0 !important;
+}
+
+/* proportionsControls: show as flex row when visible */
+.bottombar #proportionsControls:not([style*="none"]) {
+  display: flex !important;
+  align-items: center;
+  gap: 6px;
+}
+.bottombar #proportionsControls {
+  margin-top: 0 !important;
+}
+
+/* cellControls: show as flex row when visible */
+.bottombar #cellControls:not([style*="none"]) {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Preview strip */
+.input-mini {
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--fg);
+  font-family: inherit;
+  font-size: 12px;
+  border-radius: var(--radius);
+  width: 96px;
+  height: 26px;
+}
+
+.input-mini:focus {
+  outline: none;
+  border-color: var(--border-active);
+}
+
+.preview-canvas-wrap-mini {
+  flex: 1;
+  height: 36px;
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--panel-bg);
+  display: flex;
+  align-items: center;
+}
+
+.preview-canvas-wrap-mini canvas {
+  height: 100%;
+  width: auto;
+  display: block;
+}
+
+/* Alphabet grid: fill height, 5 columns, no horizontal overflow */
+body.editor-app .alphabet-grid {
+  flex: 1;
+  min-height: 0;
+  grid-template-columns: repeat(5, 1fr);
+  grid-auto-rows: 1fr;   /* rows fill available height */
+  gap: 3px;
+  overflow: hidden;
+}
+
+/* Cards fill their grid cell (no aspect-ratio, that caused h-overflow) */
+body.editor-app .letter-card {
+  aspect-ratio: unset;
+  min-height: 0;
+  padding: 2px;
+}
+
+/* Canvas inside card stays square, sized by card width */
+body.editor-app .letter-card canvas {
+  flex: none;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1;
+}
+
+body.editor-app .letter-card-header {
+  font-size: 7px;
+  margin-bottom: 1px;
+}

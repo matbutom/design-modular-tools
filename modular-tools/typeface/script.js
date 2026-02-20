@@ -2,100 +2,49 @@
 // CONFIGURACIÓN Y FORMAS DISPONIBLES
 // ========================================
 
-const STROKE_WIDTH = 12;
-
 const SHAPES = {
   empty: {
     name: 'Vacío',
     rotations: 1,
     draw: () => {}
   },
-  
-  line: {
-    name: 'Línea',
-    rotations: 4,
-    draw: (ctx, x, y, s, rotation, color = '#000000') => {
-      const w = s * (STROKE_WIDTH / 100);
-      ctx.save();
-      ctx.translate(x + s/2, y + s/2);
-      ctx.rotate((rotation * Math.PI) / 2);
-      ctx.translate(-s/2, -s/2);
+
+  square: {
+    name: 'Cuadrado',
+    rotations: 1,
+    draw: (ctx, x, y, s, _rotation, color = '#000000') => {
       ctx.fillStyle = color;
-      ctx.fillRect(0, 0, s, w);
-      ctx.restore();
+      ctx.fillRect(x, y, s, s);
     }
   },
-  
-  quarter: {
-    name: '1/4 Círculo',
-    rotations: 4,
-    draw: (ctx, x, y, s, rotation, color = '#000000') => {
-      const w = s * (STROKE_WIDTH / 100);
-      ctx.save();
-      ctx.translate(x + s/2, y + s/2);
-      ctx.rotate((rotation * Math.PI) / 2);
-      ctx.translate(-s/2, -s/2);
-      const radius = s - w/2;
-      ctx.beginPath();
-      ctx.arc(s, s, radius, Math.PI, Math.PI * 1.5);
-      ctx.lineWidth = w;
-      ctx.lineCap = 'butt';
-      ctx.strokeStyle = color;
-      ctx.stroke();
-      ctx.restore();
-    }
-  },
-  
-  half: {
-    name: '1/2 Círculo',
-    rotations: 4,
-    draw: (ctx, x, y, s, rotation, color = '#000000') => {
-      const w = s * (STROKE_WIDTH / 100);
-      ctx.save();
-      ctx.translate(x + s/2, y + s/2);
-      ctx.rotate((rotation * Math.PI) / 2);
-      ctx.translate(-s/2, -s/2);
-      const radius = (s/2) - w/2;
-      ctx.beginPath();
-      ctx.arc(s/2, s, radius, Math.PI, 0);
-      ctx.lineWidth = w;
-      ctx.lineCap = 'butt';
-      ctx.strokeStyle = color;
-      ctx.stroke();
-      ctx.restore();
-    }
-  },
-  
+
   circle: {
     name: 'Círculo',
     rotations: 1,
     draw: (ctx, x, y, s, rotation, color = '#000000') => {
-      const w = s * (STROKE_WIDTH / 100);
-      const radius = (s/2) - w/2;
       ctx.beginPath();
-      ctx.arc(x + s/2, y + s/2, radius, 0, Math.PI * 2);
-      ctx.lineWidth = w;
-      ctx.strokeStyle = color;
-      ctx.stroke();
+      ctx.arc(x + s / 2, y + s / 2, s / 2, 0, Math.PI * 2);
+      ctx.fillStyle = color;
+      ctx.fill();
     }
   },
-  
-  diagonal: {
-    name: 'Diagonal',
+
+  quarter: {
+    name: '1/4 Círculo',
     rotations: 4,
+    // Sector relleno: centro en la esquina superior-izquierda de la celda,
+    // radio = s. Las 4 rotaciones cubren las 4 esquinas.
     draw: (ctx, x, y, s, rotation, color = '#000000') => {
-      const w = s * (STROKE_WIDTH / 100);
       ctx.save();
-      ctx.translate(x + s/2, y + s/2);
+      ctx.translate(x + s / 2, y + s / 2);
       ctx.rotate((rotation * Math.PI) / 2);
-      ctx.translate(-s/2, -s/2);
+      ctx.translate(-s / 2, -s / 2);
       ctx.beginPath();
       ctx.moveTo(0, 0);
-      ctx.lineTo(s, s);
-      ctx.lineWidth = w;
-      ctx.lineCap = 'butt';
-      ctx.strokeStyle = color;
-      ctx.stroke();
+      ctx.arc(0, 0, s, 0, Math.PI / 2);
+      ctx.closePath();
+      ctx.fillStyle = color;
+      ctx.fill();
       ctx.restore();
     }
   }
@@ -119,7 +68,7 @@ const state = {
   proportionsEnabled: false,
   brushMode: true, // Activado por defecto
   brushColor: '#000000',
-  brushShape: 'line',
+  brushShape: 'square',
   brushRotation: 0,
   isPainting: false,
   isErasing: false,
@@ -410,7 +359,7 @@ function populateBrushShapeSelect() {
     option.textContent = shape.name;
     brushShape.appendChild(option);
   });
-  brushShape.value = 'line';
+  brushShape.value = 'square';
 }
 
 function updateGridInfo() {

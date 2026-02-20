@@ -3,188 +3,143 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Editor Tipográfico Modular</title>
+  <title>Editor Tipográfico</title>
   <link rel="stylesheet" href="style.css">
 </head>
-<body>
-  <div class="container">
-    <header class="header">
-      <h1>Editor Tipográfico Modular</h1>
-      <nav class="header-nav">
-        <a href="../../index.html" class="nav-link">Inicio</a>
-        <a href="../drawing/index.html" class="nav-link">Dibujo Libre</a>
-        <a href="community.html" class="nav-link">Creaciones</a>
-      </nav>
-    </header>
+<body class="editor-app">
 
-    <main class="main">
-      <aside class="sidebar">
-        <section class="panel">
-          <h2>Letra actual</h2>
-          <div class="letter-nav">
-            <button id="btnPrevLetter" class="btn-arrow" title="Letra anterior">←</button>
-            <select id="letterSelect" class="select-letter"></select>
-            <button id="btnNextLetter" class="btn-arrow" title="Letra siguiente">→</button>
-          </div>
-          <button id="btnClearLetter" class="btn btn-secondary btn-block">Limpiar</button>
-        </section>
+  <!-- Minimal top nav -->
+  <nav class="topbar">
+    <span class="topbar-title">Editor</span>
+    <div class="topbar-nav">
+      <a href="../../index.html" class="nav-link">Inicio</a>
+      <a href="../drawing/index.html" class="nav-link">Dibujo libre</a>
+      <a href="community.html" class="nav-link">Creaciones</a>
+    </div>
+  </nav>
 
-        <section class="panel">
-          <h2>Grilla</h2>
-          <div class="grid-controls">
-            <div class="control-row">
-              <label>Columnas</label>
-              <div class="stepper">
-                <button id="btnDecCols" class="btn-stepper">−</button>
-                <span id="colsValue">4</span>
-                <button id="btnIncCols" class="btn-stepper">+</button>
-              </div>
-            </div>
-            <div class="control-row">
-              <label>Filas</label>
-              <div class="stepper">
-                <button id="btnDecRows" class="btn-stepper">−</button>
-                <span id="rowsValue">4</span>
-                <button id="btnIncRows" class="btn-stepper">+</button>
-              </div>
-            </div>
-          </div>
-        </section>
+  <!-- Editor + alphabet -->
+  <main class="editor-main">
+    <section class="editor">
+      <div class="editor-header">
+        <span class="current-letter" id="currentLetterLabel">A</span>
+        <span class="grid-info" id="gridInfo">4×4</span>
+      </div>
+      <div class="canvas-container">
+        <canvas id="editorCanvas"></canvas>
+      </div>
+    </section>
 
-        <section class="panel">
-          <h2>Proporciones tipográficas</h2>
-          <div class="control-row">
-            <label>Activar</label>
-            <label class="toggle-switch">
-              <input type="checkbox" id="toggleProportions">
-              <span class="toggle-slider"></span>
-            </label>
-          </div>
-          <div id="proportionsControls" style="display: none; margin-top: 12px;">
-            <div class="grid-controls">
-              <div class="control-row">
-                <label>X-height</label>
-                <div class="stepper">
-                  <button id="btnDecXHeight" class="btn-stepper">−</button>
-                  <span id="xHeightValue">2</span>
-                  <button id="btnIncXHeight" class="btn-stepper">+</button>
-                </div>
-              </div>
-              <div class="control-row">
-                <label>Ascendente</label>
-                <div class="stepper">
-                  <button id="btnDecAscender" class="btn-stepper">−</button>
-                  <span id="ascenderValue">1</span>
-                  <button id="btnIncAscender" class="btn-stepper">+</button>
-                </div>
-              </div>
-              <div class="control-row">
-                <label>Descendente</label>
-                <div class="stepper">
-                  <button id="btnDecDescender" class="btn-stepper">−</button>
-                  <span id="descenderValue">1</span>
-                  <button id="btnIncDescender" class="btn-stepper">+</button>
-                </div>
-              </div>
-            </div>
-            <div class="control-row" style="margin-top: 12px;">
-              <label>Guías</label>
-              <label class="toggle-switch">
-                <input type="checkbox" id="toggleGuides">
-                <span class="toggle-slider"></span>
-              </label>
-            </div>
-            <div class="hint" style="margin-top: 8px;">
-              Las filas se ajustan automáticamente
-            </div>
-          </div>
-        </section>
+    <aside class="alphabet" id="alphabetPanel">
+      <button class="alphabet-toggle" id="alphabetToggle" aria-label="Toggle abecedario">
+        <span class="toggle-arrow">→</span>
+      </button>
+      <div class="alphabet-content">
+        <h2>Abecedario</h2>
+        <div id="alphabetGrid" class="alphabet-grid"></div>
+      </div>
+    </aside>
+  </main>
 
-        <section class="panel">
-          <h2>Modo pincel</h2>
-          <div class="control-row">
-            <label>Activar</label>
-            <label class="toggle-switch">
-              <input type="checkbox" id="toggleBrush" checked>
-              <span class="toggle-slider"></span>
-            </label>
-          </div>
-          <div id="brushControls" style="display: block; margin-top: 12px;">
-            <div class="control-row">
-              <label>Color</label>
-              <input type="color" id="brushColor" class="color-input" value="#000000">
-            </div>
-            <div class="control-row">
-              <label>Forma</label>
-              <select id="brushShape" class="select"></select>
-            </div>
-            <div class="hint" style="margin-top: 8px;">
-              Arrastra para pintar. Shift para borrar. R para rotar.
-            </div>
-          </div>
-        </section>
+  <!-- Bottom controls bar -->
+  <div class="bottombar">
 
-        <section class="panel">
-          <h2>Celda seleccionada</h2>
-          <div id="cellControls" class="cell-controls" style="display: none;">
-            <div class="control-row">
-              <label>Forma</label>
-              <select id="shapeSelect" class="select"></select>
-            </div>
-            <div class="control-row">
-              <label>Rotación</label>
-              <button id="btnRotate" class="btn btn-block">Rotar 90°</button>
-            </div>
-          </div>
-          <div id="noCellSelected" class="hint">
-            Click en una celda para editarla
-          </div>
-        </section>
+    <!-- Letra -->
+    <div class="bar-group">
+      <span class="bar-label">Letra</span>
+      <div class="letter-nav">
+        <button id="btnPrevLetter" class="btn-arrow" title="Letra anterior">←</button>
+        <select id="letterSelect" class="select-letter"></select>
+        <button id="btnNextLetter" class="btn-arrow" title="Letra siguiente">→</button>
+      </div>
+      <button id="btnClearLetter" class="btn btn-secondary">Limpiar</button>
+    </div>
 
-        <section class="panel">
-          <h2>Preview</h2>
-          <input 
-            id="previewText" 
-            class="input" 
-            type="text" 
-            value="hello world :)" 
-            maxlength="24"
-            placeholder="Escribe algo..."
-          >
-          <div class="preview-canvas-wrap">
-            <canvas id="previewCanvas"></canvas>
-          </div>
-        </section>
-      </aside>
+    <!-- Grilla -->
+    <div class="bar-group">
+      <span class="bar-label">Col</span>
+      <div class="stepper">
+        <button id="btnDecCols" class="btn-stepper">−</button>
+        <span id="colsValue">4</span>
+        <button id="btnIncCols" class="btn-stepper">+</button>
+      </div>
+      <span class="bar-label">Fil</span>
+      <div class="stepper">
+        <button id="btnDecRows" class="btn-stepper">−</button>
+        <span id="rowsValue">4</span>
+        <button id="btnIncRows" class="btn-stepper">+</button>
+      </div>
+    </div>
 
-      <section class="editor">
-        <div class="editor-header">
-          <span class="current-letter" id="currentLetterLabel">A</span>
-          <span class="grid-info" id="gridInfo">Grilla 4×4</span>
+    <!-- Pincel -->
+    <div class="bar-group">
+      <span class="bar-label">Pincel</span>
+      <label class="toggle-switch">
+        <input type="checkbox" id="toggleBrush" checked>
+        <span class="toggle-slider"></span>
+      </label>
+      <div id="brushControls" style="display: block;">
+        <input type="color" id="brushColor" class="color-input" value="#000000">
+        <select id="brushShape" class="select select-sm"></select>
+      </div>
+    </div>
+
+    <!-- Proporciones -->
+    <div class="bar-group">
+      <span class="bar-label">Proporciones</span>
+      <label class="toggle-switch">
+        <input type="checkbox" id="toggleProportions">
+        <span class="toggle-slider"></span>
+      </label>
+      <div id="proportionsControls" style="display: none;">
+        <div class="stepper">
+          <span class="bar-sub">x</span>
+          <button id="btnDecXHeight" class="btn-stepper">−</button>
+          <span id="xHeightValue">2</span>
+          <button id="btnIncXHeight" class="btn-stepper">+</button>
         </div>
-        <div class="canvas-container">
-          <canvas id="editorCanvas"></canvas>
+        <div class="stepper">
+          <span class="bar-sub">↑</span>
+          <button id="btnDecAscender" class="btn-stepper">−</button>
+          <span id="ascenderValue">1</span>
+          <button id="btnIncAscender" class="btn-stepper">+</button>
         </div>
-        
-        <div class="editor-actions">
-          <button id="btnExportImage" class="btn">Exportar letras PNG</button>
-          <button id="btnExport" class="btn">Exportar JSON</button>
-          <label class="btn" for="fileImport">Importar JSON</label>
-          <input id="fileImport" type="file" accept=".json" hidden>
-          <button id="btnReset" class="btn btn-secondary">Reset</button>
+        <div class="stepper">
+          <span class="bar-sub">↓</span>
+          <button id="btnDecDescender" class="btn-stepper">−</button>
+          <span id="descenderValue">1</span>
+          <button id="btnIncDescender" class="btn-stepper">+</button>
         </div>
-      </section>
+        <label class="toggle-switch" title="Guías">
+          <input type="checkbox" id="toggleGuides">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+    </div>
 
-      <aside class="alphabet" id="alphabetPanel">
-        <button class="alphabet-toggle" id="alphabetToggle" aria-label="Toggle abecedario">
-          <span class="toggle-arrow">→</span>
-        </button>
-        <div class="alphabet-content">
-          <h2>Abecedario</h2>
-          <div id="alphabetGrid" class="alphabet-grid"></div>
-        </div>
-      </aside>
-    </main>
+    <!-- Celda -->
+    <div class="bar-group">
+      <span class="bar-label">Celda</span>
+      <div id="cellControls" class="cell-controls" style="display: none;">
+        <select id="shapeSelect" class="select select-sm"></select>
+        <button id="btnRotate" class="btn">90°</button>
+      </div>
+      <span id="noCellSelected" class="bar-hint">—</span>
+    </div>
+
+    <!-- Preview hidden (JS still references these) -->
+    <input id="previewText" type="text" value="hello world :)" maxlength="24" style="display:none;">
+    <canvas id="previewCanvas" style="display:none;"></canvas>
+
+    <!-- Acciones -->
+    <div class="bar-group bar-actions">
+      <button id="btnExportImage" class="btn">PNG</button>
+      <button id="btnExport" class="btn">JSON</button>
+      <label class="btn" for="fileImport">Import</label>
+      <input id="fileImport" type="file" accept=".json" hidden>
+      <button id="btnReset" class="btn btn-secondary">Reset</button>
+    </div>
+
   </div>
 
   <!-- Context Menu -->
