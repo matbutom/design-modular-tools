@@ -21,7 +21,7 @@ const SHAPES = {
   circle: {
     name: 'Círculo',
     rotations: 1,
-    draw: (ctx, x, y, s, rotation, color = '#000000') => {
+    draw: (ctx, x, y, s, _rotation, color = '#000000') => {
       ctx.beginPath();
       ctx.arc(x + s / 2, y + s / 2, s / 2, 0, Math.PI * 2);
       ctx.fillStyle = color;
@@ -875,6 +875,155 @@ function getCellFromEvent(e) {
 }
 
 // ========================================
+// EXPORTAR FUENTE OTF
+// ========================================
+
+function exportFont() {
+  if (typeof opentype === 'undefined') {
+    alert('La librería opentype.js no se cargó correctamente.');
+    return;
+  }
+
+  const UPM = 1000;
+  const K = 0.5522847498; // cubic bezier circle approximation constant
+
+  // Determine cell size from the tallest letter
+  const maxRows = Math.max(...ALPHABET.map(l => state.letters[l]?.rows ?? 1));
+  const cellSize = Math.floor(UPM / maxRows);
+  const margin = Math.round(cellSize * 0.3); // side + vertical padding (~30% of a cell)
+
+  // Build opentype Path commands for a single cell in font Y-up coordinates.
+  // cx = left edge, cy = bottom edge (font Y-up), s = cellSize.
+  // margin shifts glyphs away from the advance-width edges on all four sides.
+  function cellCommands(cell, col, row, totalRows) {
+    if (cell.shape === 'empty') return [];
+
+    const s = cellSize;
+    const ks = K * s;
+    const cx = col * s + margin;                    // left side bearing
+    const cy = (totalRows - 1 - row) * s + margin; // bottom padding (Y-up)
+
+    // All outer contours are CCW in Y-up (verified with shoelace formula).
+    if (cell.shape === 'square') {
+      return [
+        { type: 'M', x: cx,   y: cy   },
+        { type: 'L', x: cx+s, y: cy   },
+        { type: 'L', x: cx+s, y: cy+s },
+        { type: 'L', x: cx,   y: cy+s },
+        { type: 'Z' }
+      ];
+    }
+
+    if (cell.shape === 'circle') {
+      const ox = cx + s/2, oy = cy + s/2, r = s/2, kr = K * r;
+      return [
+        { type: 'M',  x: ox+r,  y: oy },
+        { type: 'C',  x1: ox+r,  y1: oy+kr, x2: ox+kr,  y2: oy+r,  x: ox,   y: oy+r  },
+        { type: 'C',  x1: ox-kr, y1: oy+r,  x2: ox-r,   y2: oy+kr, x: ox-r, y: oy    },
+        { type: 'C',  x1: ox-r,  y1: oy-kr, x2: ox-kr,  y2: oy-r,  x: ox,   y: oy-r  },
+        { type: 'C',  x1: ox+kr, y1: oy-r,  x2: ox+r,   y2: oy-kr, x: ox+r, y: oy    },
+        { type: 'Z' }
+      ];
+    }
+
+    if (cell.shape === 'quarter') {
+      // Canvas rotation → font CCW path mapping (Y-axis flip changes centre corner):
+      //  canvas R0 (centre top-left)   → font centre at (cx, cy+s)
+      //  canvas R1 (centre top-right)  → font centre at (cx+s, cy+s)
+      //  canvas R2 (centre bot-right)  → font centre at (cx+s, cy)
+      //  canvas R3 (centre bot-left)   → font centre at (cx, cy)
+      switch (cell.rotation) {
+        case 0: // centre top-left (cx, cy+s)
+          return [
+            { type: 'M', x: cx,   y: cy+s },
+            { type: 'L', x: cx,   y: cy   },
+            { type: 'C', x1: cx+ks, y1: cy,    x2: cx+s, y2: cy+s-ks, x: cx+s, y: cy+s },
+            { type: 'Z' }
+          ];
+        case 1: // centre top-right (cx+s, cy+s)
+          return [
+            { type: 'M', x: cx+s, y: cy+s },
+            { type: 'L', x: cx,   y: cy+s },
+            { type: 'C', x1: cx,   y1: cy+s-ks, x2: cx+s-ks, y2: cy, x: cx+s, y: cy },
+            { type: 'Z' }
+          ];
+        case 2: // centre bottom-right (cx+s, cy)
+          return [
+            { type: 'M', x: cx+s, y: cy   },
+            { type: 'L', x: cx+s, y: cy+s },
+            { type: 'C', x1: cx+s-ks, y1: cy+s, x2: cx, y2: cy+ks, x: cx, y: cy },
+            { type: 'Z' }
+          ];
+        case 3: // centre bottom-left (cx, cy)
+          return [
+            { type: 'M', x: cx,   y: cy   },
+            { type: 'L', x: cx+s, y: cy   },
+            { type: 'C', x1: cx+s, y1: cy+ks, x2: cx+ks, y2: cy+s, x: cx, y: cy+s },
+            { type: 'Z' }
+          ];
+        default:
+          return [];
+      }
+    }
+
+    return [];
+  }
+
+  // .notdef (required by spec)
+  const notdefGlyph = new opentype.Glyph({
+    name: '.notdef',
+    unicode: undefined,
+    advanceWidth: cellSize * 4,
+    path: new opentype.Path()
+  });
+
+  // space
+  const spaceGlyph = new opentype.Glyph({
+    name: 'space',
+    unicode: 32,
+    advanceWidth: cellSize * 2,
+    path: new opentype.Path()
+  });
+
+  const glyphs = [notdefGlyph, spaceGlyph];
+
+  for (const letter of ALPHABET) {
+    const letterData = state.letters[letter];
+    if (!letterData) continue;
+
+    const { grid, cols, rows } = letterData;
+    const path = new opentype.Path();
+
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        const cmds = cellCommands(grid[r][c], c, r, rows);
+        path.commands.push(...cmds);
+      }
+    }
+
+    glyphs.push(new opentype.Glyph({
+      name: letter,
+      unicode: letter.codePointAt(0),
+      advanceWidth: cols * cellSize + 2 * margin,
+      path
+    }));
+  }
+
+  const fontName = prompt('Nombre de la fuente:', 'Modular Type') || 'Modular Type';
+
+  const font = new opentype.Font({
+    familyName: fontName,
+    styleName: 'Regular',
+    unitsPerEm: UPM,
+    ascender: maxRows * cellSize + 2 * margin,
+    descender: 0,
+    glyphs
+  });
+
+  font.download(fontName.replace(/\s+/g, '-').toLowerCase() + '.otf');
+}
+
+// ========================================
 // IMPORTAR/EXPORTAR
 // ========================================
 
@@ -1171,6 +1320,7 @@ function setupEventListeners() {
   
   document.getElementById('btnExport')?.addEventListener('click', exportJSON);
   document.getElementById('btnExportImage')?.addEventListener('click', exportImage);
+  document.getElementById('btnExportFont')?.addEventListener('click', exportFont);
   document.getElementById('fileImport')?.addEventListener('change', importJSON);
   
   alphabetToggle?.addEventListener('click', () => {

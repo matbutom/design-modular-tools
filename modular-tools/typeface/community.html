@@ -3,71 +3,70 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Creaciones Comunitarias - Editor Tipográfico</title>
+  <title>Creaciones - Editor Tipográfico</title>
   <link rel="stylesheet" href="style.css">
 </head>
-<body>
-  <div class="container">
-    <header class="header">
-      <h1>Creaciones Comunitarias</h1>
-      <nav class="header-nav">
-        <a href="../index.html" class="nav-link">Inicio</a>
-        <a href="../drawing/index.html" class="nav-link">Dibujo Libre</a>
-        <a href="community.html" class="nav-link active">Creaciones</a>
-      </nav>
-    </header>
+<body class="community-app">
 
-    <main class="community-main">
-      <div class="community-header">
-        <p class="community-subtitle">Explora y descarga tipografías creadas por la comunidad</p>
-        <div class="community-actions">
-          <button id="btnShareFont" class="btn btn-primary">+ Compartir mi tipografía</button>
-        </div>
-      </div>
+  <!-- Minimal top nav -->
+  <nav class="topbar">
+    <span class="topbar-title">Creaciones</span>
+    <div class="topbar-nav">
+      <a href="../../index.html" class="nav-link">Inicio</a>
+      <a href="index.html" class="nav-link">Editor</a>
+      <a href="../drawing/index.html" class="nav-link">Dibujo libre</a>
+    </div>
+  </nav>
 
-      <div id="fontsGrid" class="fonts-grid">
-        <!-- Las tipografías se cargarán aquí dinámicamente -->
-      </div>
-
-      <div id="emptyState" class="empty-state">
-        <p>🎨</p>
-        <p class="empty-title">Aún no hay tipografías compartidas</p>
-        <p class="empty-subtitle">¡Sé el primero en compartir tu creación!</p>
-        <a href="index.html" class="btn btn-primary">Crear Tipografía</a>
-      </div>
-    </main>
+  <!-- Sticky controls: sample text + upload -->
+  <div class="community-controls">
+    <input
+      type="text"
+      id="sampleText"
+      class="sample-input"
+      value="El veloz murciélago hindú comía feliz cardillo y kiwi"
+      placeholder="Escribe aquí para previsualizar todas las fuentes…"
+    >
+    <button id="btnUpload" class="btn btn-primary">+ Subir tipografía</button>
   </div>
 
-  <!-- Modal para compartir -->
-  <div id="shareModal" class="modal" style="display: none;">
+  <!-- Font list -->
+  <main class="font-list" id="fontList"></main>
+
+  <!-- Empty state -->
+  <div id="emptyState" class="community-empty" style="display:none;">
+    <p class="community-empty-icon">◻</p>
+    <p class="community-empty-title">Aún no hay tipografías compartidas</p>
+    <p class="community-empty-sub">¡Sé el primero en subir tu creación!</p>
+    <a href="index.html" class="btn btn-primary">Ir al editor</a>
+  </div>
+
+  <!-- Upload modal -->
+  <div id="uploadModal" class="modal" style="display:none;">
     <div class="modal-overlay" id="modalOverlay"></div>
     <div class="modal-content">
       <div class="modal-header">
-        <h2>Compartir Tipografía</h2>
+        <h2>Subir tipografía</h2>
         <button class="modal-close" id="closeModal">×</button>
       </div>
       <div class="modal-body">
         <div class="form-group">
-          <label>Nombre de la tipografía *</label>
-          <input type="text" id="fontName" class="input" placeholder="Ej: Modular Sans">
+          <label>Nombre *</label>
+          <input type="text" id="uploadName" class="input" placeholder="Ej: Modular Sans">
         </div>
         <div class="form-group">
-          <label>Tu nombre</label>
-          <input type="text" id="authorName" class="input" placeholder="Anónimo">
+          <label>Autor</label>
+          <input type="text" id="uploadAuthor" class="input" placeholder="Anónimo">
         </div>
         <div class="form-group">
-          <label>Descripción</label>
-          <textarea id="fontDescription" class="input" rows="3" placeholder="Describe tu tipografía..."></textarea>
-        </div>
-        <div class="form-group">
-          <label>Subir archivo JSON de tu tipografía *</label>
-          <input type="file" id="fontFile" class="input" accept=".json">
-          <div class="hint">Exporta tu tipografía desde el editor como JSON</div>
+          <label>Archivo OTF *</label>
+          <input type="file" id="uploadFile" class="input" accept=".otf,.ttf">
+          <div class="hint">Exporta tu tipografía desde el editor con el botón OTF</div>
         </div>
       </div>
       <div class="modal-footer">
-        <button id="btnCancelShare" class="btn btn-secondary">Cancelar</button>
-        <button id="btnConfirmShare" class="btn btn-primary">Compartir</button>
+        <button id="btnCancel" class="btn btn-secondary">Cancelar</button>
+        <button id="btnConfirm" class="btn btn-primary">Subir</button>
       </div>
     </div>
   </div>

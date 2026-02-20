@@ -1576,3 +1576,138 @@ body.editor-app .letter-card-header {
   font-size: 7px;
   margin-bottom: 1px;
 }
+
+/* ========================================
+   COMMUNITY APP
+   ======================================== */
+
+body.community-app {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Sticky controls bar below topbar */
+.community-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+  flex-shrink: 0;
+}
+
+.sample-input {
+  flex: 1;
+  height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-family: inherit;
+  font-size: 12px;
+  background: var(--panel-bg);
+  color: var(--fg);
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.sample-input:focus {
+  border-color: var(--border-active);
+}
+
+/* Scrollable font list */
+.font-list {
+  flex: 1;
+  overflow-y: auto;
+}
+
+/* Individual font entry */
+.font-entry {
+  padding: 28px 32px;
+  border-bottom: 1px solid var(--border);
+}
+
+.font-entry:last-child {
+  border-bottom: none;
+}
+
+.font-entry-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+
+.font-entry-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* Font name rendered in the actual font */
+.font-entry-name {
+  font-size: 52px;
+  line-height: 1;
+  color: var(--fg);
+  letter-spacing: -0.01em;
+}
+
+.font-entry-meta {
+  font-size: 11px;
+  color: #999;
+  font-family: 'SF Mono', 'Monaco', monospace;
+}
+
+.font-entry-download {
+  flex-shrink: 0;
+  margin-top: 8px;
+}
+
+/* Sample text (global input drives this) */
+.font-entry-sample {
+  font-size: 30px;
+  line-height: 1.35;
+  color: var(--fg);
+  margin-bottom: 10px;
+  word-break: break-word;
+}
+
+/* Alphabet specimen row */
+.font-entry-alphabet {
+  font-size: 16px;
+  color: #aaa;
+  letter-spacing: 0.05em;
+  word-break: break-all;
+}
+
+/* Empty state */
+.community-empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 60px 20px;
+  text-align: center;
+  color: #999;
+}
+
+.community-empty-icon {
+  font-size: 48px;
+  color: var(--border);
+}
+
+.community-empty-title {
+  font-size: 15px;
+  color: var(--fg);
+}
+
+.community-empty-sub {
+  font-size: 12px;
+  color: #999;
+  margin-bottom: 8px;
+}

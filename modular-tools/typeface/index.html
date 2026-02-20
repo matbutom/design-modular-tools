@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Editor Tipográfico</title>
   <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/opentype.js/dist/opentype.min.js"></script>
 </head>
 <body class="editor-app">
 
@@ -133,10 +134,7 @@
 
     <!-- Acciones -->
     <div class="bar-group bar-actions">
-      <button id="btnExportImage" class="btn">PNG</button>
-      <button id="btnExport" class="btn">JSON</button>
-      <label class="btn" for="fileImport">Import</label>
-      <input id="fileImport" type="file" accept=".json" hidden>
+      <button id="btnExportFont" class="btn">OTF</button>
       <button id="btnReset" class="btn btn-secondary">Reset</button>
     </div>
 

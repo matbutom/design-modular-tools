@@ -1,244 +1,205 @@
-// Script para la página de comunidad
+// ========================================
+// UTILIDADES
+// ========================================
 
-// Cargar tipografías compartidas
-function loadSharedFonts() {
-  const fonts = JSON.parse(localStorage.getItem('sharedFonts') || '[]');
-  const fontsGrid = document.getElementById('fontsGrid');
+const STORAGE_KEY = 'communityFontsV2';
+
+// Cache of loaded FontFace family names: fontId → 'community-font-<id>'
+const loadedFamilies = {};
+
+function getFonts() {
+  try {
+    return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+  } catch {
+    return [];
+  }
+}
+
+function saveFonts(fonts) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(fonts));
+  } catch (e) {
+    alert('No hay espacio suficiente en el almacenamiento local. Intenta eliminar alguna tipografía.');
+  }
+}
+
+function arrayBufferToBase64(buffer) {
+  const bytes = new Uint8Array(buffer);
+  let binary = '';
+  for (let i = 0; i < bytes.byteLength; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return btoa(binary);
+}
+
+function base64ToArrayBuffer(base64) {
+  const binaryStr = atob(base64);
+  const bytes = new Uint8Array(binaryStr.length);
+  for (let i = 0; i < binaryStr.length; i++) {
+    bytes[i] = binaryStr.charCodeAt(i);
+  }
+  return bytes.buffer;
+}
+
+// ========================================
+// CARGA DE FUENTES (FontFace API)
+// ========================================
+
+async function loadFontFace(fontId, base64Data) {
+  if (loadedFamilies[fontId]) return loadedFamilies[fontId];
+
+  const familyName = `community-font-${fontId}`;
+  const buffer = base64ToArrayBuffer(base64Data);
+  const face = new FontFace(familyName, buffer);
+  await face.load();
+  document.fonts.add(face);
+  loadedFamilies[fontId] = familyName;
+  return familyName;
+}
+
+// ========================================
+// TEXTO DE MUESTRA GLOBAL
+// ========================================
+
+function getSampleText() {
+  return document.getElementById('sampleText').value.trim()
+    || 'El veloz murciélago hindú comía feliz cardillo y kiwi';
+}
+
+document.getElementById('sampleText').addEventListener('input', () => {
+  const text = getSampleText();
+  document.querySelectorAll('.font-entry-sample').forEach(el => {
+    el.textContent = text;
+  });
+});
+
+// ========================================
+// RENDERIZADO DE ENTRADAS
+// ========================================
+
+function createFontEntry(font, familyName) {
+  const sampleText = getSampleText();
+
+  const entry = document.createElement('article');
+  entry.className = 'font-entry';
+  entry.dataset.id = font.id;
+
+  const meta = font.author && font.author !== 'Anónimo'
+    ? `por ${font.author}`
+    : '';
+
+  entry.innerHTML = `
+    <div class="font-entry-header">
+      <div class="font-entry-info">
+        <div class="font-entry-name" style="font-family:'${familyName}'">${font.name}</div>
+        ${meta ? `<div class="font-entry-meta">${meta}</div>` : ''}
+      </div>
+      <button class="btn font-entry-download" data-id="${font.id}">Descargar OTF</button>
+    </div>
+    <div class="font-entry-sample" style="font-family:'${familyName}'">${sampleText}</div>
+    <div class="font-entry-alphabet" style="font-family:'${familyName}'">ABCDEFGHIJKLMNOPQRSTUVWXYZ&nbsp;&nbsp;0123456789</div>
+  `;
+
+  entry.querySelector('.font-entry-download').addEventListener('click', () => {
+    downloadFontOTF(font.id);
+  });
+
+  return entry;
+}
+
+async function loadCommunityFonts() {
+  const fonts = getFonts();
+  const fontList = document.getElementById('fontList');
   const emptyState = document.getElementById('emptyState');
-  
+
+  fontList.innerHTML = '';
+
   if (fonts.length === 0) {
-    fontsGrid.style.display = 'none';
-    emptyState.style.display = 'block';
+    emptyState.style.display = 'flex';
     return;
   }
-  
-  fontsGrid.style.display = 'grid';
+
   emptyState.style.display = 'none';
-  fontsGrid.innerHTML = '';
-  
-  fonts.forEach(font => {
-    const card = createFontCard(font);
-    fontsGrid.appendChild(card);
-  });
+
+  for (const font of fonts) {
+    try {
+      const familyName = await loadFontFace(font.id, font.otfData);
+      const entry = createFontEntry(font, familyName);
+      fontList.appendChild(entry);
+    } catch (err) {
+      console.warn(`No se pudo cargar la fuente "${font.name}":`, err);
+    }
+  }
 }
 
-function createFontCard(font) {
-  const card = document.createElement('div');
-  card.className = 'font-card';
-  
-  card.innerHTML = `
-    <div class="font-card-header">
-      <div>
-        <div class="font-card-title">${font.name}</div>
-        <div class="font-card-author">por ${font.author}</div>
-      </div>
-    </div>
-    <div class="font-card-preview">
-      <canvas id="preview-${font.id}" width="280" height="80"></canvas>
-    </div>
-    ${font.description ? `<div class="font-card-description">${font.description}</div>` : ''}
-    <div class="font-card-actions">
-      <button class="btn" onclick="downloadFont(${font.id})">Descargar</button>
-      <button class="btn btn-secondary" onclick="likeFont(${font.id})">❤️ ${font.likes}</button>
-    </div>
-  `;
-  
-  // Renderizar preview
-  setTimeout(() => {
-    renderFontPreview(font, `preview-${font.id}`);
-  }, 0);
-  
-  return card;
+// ========================================
+// DESCARGA
+// ========================================
+
+function downloadFontOTF(fontId) {
+  const font = getFonts().find(f => f.id === fontId);
+  if (!font) return;
+
+  const buffer = base64ToArrayBuffer(font.otfData);
+  const blob = new Blob([buffer], { type: 'font/otf' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = font.name.replace(/\s+/g, '-').toLowerCase() + '.otf';
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
-function renderFontPreview(font, canvasId) {
-  const canvas = document.getElementById(canvasId);
-  if (!canvas) return;
-  
-  const ctx = canvas.getContext('2d');
-  const text = 'ABC';
-  const letterHeight = 60;
-  const spacing = 8;
-  
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  
-  let totalWidth = 0;
-  text.split('').forEach(char => {
-    if (font.data[char]) {
-      const letter = font.data[char];
-      const letterWidth = (letterHeight / letter.rows) * letter.cols;
-      totalWidth += letterWidth + spacing;
-    }
-  });
-  totalWidth -= spacing;
-  
-  const offsetX = (canvas.width - totalWidth) / 2;
-  const offsetY = (canvas.height - letterHeight) / 2;
-  
-  ctx.lineCap = 'butt';
-  ctx.lineJoin = 'miter';
-  
-  let currentX = offsetX;
-  
-  // Definir SHAPES localmente
-  const SHAPES = {
-    line: {
-      draw: (ctx, x, y, s, rotation, color = '#000000') => {
-        const w = s * 0.12;
-        ctx.save();
-        ctx.translate(x + s/2, y + s/2);
-        ctx.rotate((rotation * Math.PI) / 2);
-        ctx.translate(-s/2, -s/2);
-        ctx.fillStyle = color;
-        ctx.fillRect(0, 0, s, w);
-        ctx.restore();
-      }
-    },
-    quarter: {
-      draw: (ctx, x, y, s, rotation, color = '#000000') => {
-        const w = s * 0.12;
-        ctx.save();
-        ctx.translate(x + s/2, y + s/2);
-        ctx.rotate((rotation * Math.PI) / 2);
-        ctx.translate(-s/2, -s/2);
-        const radius = s - w/2;
-        ctx.beginPath();
-        ctx.arc(s, s, radius, Math.PI, Math.PI * 1.5);
-        ctx.lineWidth = w;
-        ctx.strokeStyle = color;
-        ctx.stroke();
-        ctx.restore();
-      }
-    },
-    half: {
-      draw: (ctx, x, y, s, rotation, color = '#000000') => {
-        const w = s * 0.12;
-        ctx.save();
-        ctx.translate(x + s/2, y + s/2);
-        ctx.rotate((rotation * Math.PI) / 2);
-        ctx.translate(-s/2, -s/2);
-        const radius = (s/2) - w/2;
-        ctx.beginPath();
-        ctx.arc(s/2, s, radius, Math.PI, 0);
-        ctx.lineWidth = w;
-        ctx.strokeStyle = color;
-        ctx.stroke();
-        ctx.restore();
-      }
-    },
-    circle: {
-      draw: (ctx, x, y, s, rotation, color = '#000000') => {
-        const w = s * 0.12;
-        const radius = (s/2) - w/2;
-        ctx.beginPath();
-        ctx.arc(x + s/2, y + s/2, radius, 0, Math.PI * 2);
-        ctx.lineWidth = w;
-        ctx.strokeStyle = color;
-        ctx.stroke();
-      }
-    },
-    diagonal: {
-      draw: (ctx, x, y, s, rotation, color = '#000000') => {
-        const w = s * 0.12;
-        ctx.save();
-        ctx.translate(x + s/2, y + s/2);
-        ctx.rotate((rotation * Math.PI) / 2);
-        ctx.translate(-s/2, -s/2);
-        ctx.beginPath();
-        ctx.moveTo(0, 0);
-        ctx.lineTo(s, s);
-        ctx.lineWidth = w;
-        ctx.strokeStyle = color;
-        ctx.stroke();
-        ctx.restore();
-      }
-    }
-  };
-  
-  text.split('').forEach((char) => {
-    if (!font.data[char]) return;
-    
-    const letter = font.data[char];
-    const cellSize = letterHeight / letter.rows;
-    const letterWidth = cellSize * letter.cols;
-    
-    letter.grid.forEach((row, rowIndex) => {
-      row.forEach((cell, colIndex) => {
-        const shape = SHAPES[cell.shape];
-        if (shape && cell.shape !== 'empty') {
-          const x = currentX + colIndex * cellSize;
-          const y = offsetY + rowIndex * cellSize;
-          shape.draw(ctx, x, y, cellSize, cell.rotation, cell.color);
-        }
-      });
+// ========================================
+// MODAL DE SUBIDA
+// ========================================
+
+const uploadModal = document.getElementById('uploadModal');
+
+function openModal() {
+  uploadModal.style.display = 'flex';
+}
+
+function closeModal() {
+  uploadModal.style.display = 'none';
+  document.getElementById('uploadName').value = '';
+  document.getElementById('uploadAuthor').value = '';
+  document.getElementById('uploadFile').value = '';
+}
+
+document.getElementById('btnUpload').addEventListener('click', openModal);
+document.getElementById('closeModal').addEventListener('click', closeModal);
+document.getElementById('btnCancel').addEventListener('click', closeModal);
+document.getElementById('modalOverlay').addEventListener('click', closeModal);
+
+document.getElementById('btnConfirm').addEventListener('click', () => {
+  const name = document.getElementById('uploadName').value.trim();
+  const author = document.getElementById('uploadAuthor').value.trim() || 'Anónimo';
+  const file = document.getElementById('uploadFile').files[0];
+
+  if (!name) { alert('Por favor ingresa un nombre para la tipografía.'); return; }
+  if (!file)  { alert('Por favor selecciona un archivo OTF.'); return; }
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const base64 = arrayBufferToBase64(e.target.result);
+    const fonts = getFonts();
+    fonts.unshift({
+      id: Date.now(),
+      name,
+      author,
+      otfData: base64,
+      createdAt: new Date().toISOString()
     });
-    
-    currentX += letterWidth + spacing;
-  });
-}
-
-function downloadFont(fontId) {
-  const fonts = JSON.parse(localStorage.getItem('sharedFonts') || '[]');
-  const font = fonts.find(f => f.id === fontId);
-  
-  if (font) {
-    const data = JSON.stringify(font.data, null, 2);
-    const blob = new Blob([data], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${font.name.replace(/\s+/g, '-').toLowerCase()}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-  }
-}
-
-function likeFont(fontId) {
-  const fonts = JSON.parse(localStorage.getItem('sharedFonts') || '[]');
-  const font = fonts.find(f => f.id === fontId);
-  
-  if (font) {
-    font.likes = (font.likes || 0) + 1;
-    localStorage.setItem('sharedFonts', JSON.stringify(fonts));
-    loadSharedFonts();
-  }
-}
-
-// Búsqueda y filtrado
-document.getElementById('searchInput')?.addEventListener('input', (e) => {
-  const search = e.target.value.toLowerCase();
-  const cards = document.querySelectorAll('.font-card');
-  
-  cards.forEach(card => {
-    const title = card.querySelector('.font-card-title').textContent.toLowerCase();
-    const author = card.querySelector('.font-card-author').textContent.toLowerCase();
-    
-    if (title.includes(search) || author.includes(search)) {
-      card.style.display = 'block';
-    } else {
-      card.style.display = 'none';
-    }
-  });
+    saveFonts(fonts);
+    closeModal();
+    loadCommunityFonts();
+  };
+  reader.readAsArrayBuffer(file);
 });
 
-document.getElementById('sortSelect')?.addEventListener('change', (e) => {
-  const fonts = JSON.parse(localStorage.getItem('sharedFonts') || '[]');
-  
-  switch(e.target.value) {
-    case 'recent':
-      fonts.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-      break;
-    case 'popular':
-      fonts.sort((a, b) => (b.likes || 0) - (a.likes || 0));
-      break;
-    case 'name':
-      fonts.sort((a, b) => a.name.localeCompare(b.name));
-      break;
-  }
-  
-  localStorage.setItem('sharedFonts', JSON.stringify(fonts));
-  loadSharedFonts();
-});
+// ========================================
+// INIT
+// ========================================
 
-// Inicializar
-loadSharedFonts();
+loadCommunityFonts();
