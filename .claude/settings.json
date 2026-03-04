@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git mv modular-tools/typeface typeface)",
+      "Bash(git mv modular-tools/drawing drawing)"
+    ]
+  }
+}
