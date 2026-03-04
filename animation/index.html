@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Animación Modular</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="anim-app">
+
+  <nav class="topbar">
+    <span class="topbar-title">Animación</span>
+    <div class="topbar-nav">
+      <a href="../index.html" class="nav-link">Inicio</a>
+      <a href="../typeface/index.html" class="nav-link">Editor</a>
+      <a href="../drawing/index.html" class="nav-link">Dibujo</a>
+    </div>
+  </nav>
+
+  <main class="editor-main">
+    <div class="canvas-container" id="canvasContainer">
+      <canvas id="editorCanvas"></canvas>
+    </div>
+  </main>
+
+  <!-- Timeline (solo modo manual) -->
+  <div class="timeline" id="timeline">
+    <div class="timeline-frames" id="timelineFrames"></div>
+    <button id="btnAddFrame" class="btn-add-frame" title="Agregar frame">+</button>
+  </div>
+
+  <div class="bottombar">
+
+    <!-- Selector de modo -->
+    <div class="bar-group">
+      <button id="btnModeManual" class="btn btn-mode active">Cuadro a cuadro</button>
+      <button id="btnModeGen" class="btn btn-mode">Generativo</button>
+    </div>
+
+    <!-- Manual: Reproducción -->
+    <div class="bar-group man-only">
+      <button id="btnPlay" class="btn btn-play">▶</button>
+      <span class="bar-label">FPS</span>
+      <div class="stepper">
+        <button id="btnDecFps" class="btn-stepper">−</button>
+        <span id="fpsValue">8</span>
+        <button id="btnIncFps" class="btn-stepper">+</button>
+      </div>
+      <label class="toggle-switch" title="Loop">
+        <input type="checkbox" id="toggleLoop" checked>
+        <span class="toggle-slider"></span>
+      </label>
+      <span class="bar-label">Loop</span>
+    </div>
+
+    <!-- Generativo: Preset + Velocidad + Play -->
+    <div class="bar-group gen-only">
+      <span class="bar-label">Preset</span>
+      <select id="presetSelect" class="select-sm"></select>
+      <span class="bar-label">Vel</span>
+      <div class="stepper">
+        <button id="btnDecSpeed" class="btn-stepper">−</button>
+        <span id="speedValue">1×</span>
+        <button id="btnIncSpeed" class="btn-stepper">+</button>
+      </div>
+      <button id="btnGenPlay" class="btn btn-play">▶</button>
+    </div>
+
+    <!-- Generativo: Paleta -->
+    <div class="bar-group gen-only">
+      <span class="bar-label">Paleta</span>
+      <div id="paletteEditor" class="palette-editor"></div>
+      <select id="palettePreset" class="select-sm"></select>
+    </div>
+
+    <!-- Grilla (ambos modos) -->
+    <div class="bar-group">
+      <span class="bar-label">Col</span>
+      <div class="stepper">
+        <button id="btnDecCols" class="btn-stepper">−</button>
+        <span id="colsValue">8</span>
+        <button id="btnIncCols" class="btn-stepper">+</button>
+      </div>
+      <span class="bar-label">Fil</span>
+      <div class="stepper">
+        <button id="btnDecRows" class="btn-stepper">−</button>
+        <span id="rowsValue">8</span>
+        <button id="btnIncRows" class="btn-stepper">+</button>
+      </div>
+    </div>
+
+    <!-- Manual: Pincel -->
+    <div class="bar-group man-only">
+      <input type="color" id="brushColor" class="color-input" value="#000000">
+      <div id="brushShapePicker" class="shape-picker"></div>
+    </div>
+
+    <!-- Manual: Frames -->
+    <div class="bar-group man-only">
+      <button id="btnDupFrame" class="btn btn-secondary">Duplicar</button>
+      <button id="btnDelFrame" class="btn btn-secondary">Eliminar</button>
+    </div>
+
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>

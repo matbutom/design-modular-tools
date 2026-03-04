@@ -26,7 +26,7 @@ body {
 }
 
 .container {
-  max-width: 900px;
+  max-width: 1100px;
   width: 100%;
 }
 
@@ -52,8 +52,8 @@ body {
 /* Tools Grid */
 .tools {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 40px;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 32px;
   margin-bottom: 80px;
 }
 
@@ -116,7 +116,7 @@ body {
   
   .tools {
     grid-template-columns: 1fr;
-    gap: 24px;
+    gap: 20px;
   }
   
   .tool-card {
