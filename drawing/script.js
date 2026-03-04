@@ -2,100 +2,47 @@
 // CONFIGURACIÓN Y FORMAS DISPONIBLES
 // ========================================
 
-const STROKE_WIDTH = 12;
-
 const SHAPES = {
   empty: {
     name: 'Vacío',
     rotations: 1,
     draw: () => {}
   },
-  
-  line: {
-    name: 'Línea',
-    rotations: 4,
-    draw: (ctx, x, y, s, rotation, color = '#000000') => {
-      const w = s * (STROKE_WIDTH / 100);
-      ctx.save();
-      ctx.translate(x + s/2, y + s/2);
-      ctx.rotate((rotation * Math.PI) / 2);
-      ctx.translate(-s/2, -s/2);
+
+  square: {
+    name: 'Cuadrado',
+    rotations: 1,
+    draw: (ctx, x, y, s, _rotation, color = '#000000') => {
       ctx.fillStyle = color;
-      ctx.fillRect(0, 0, s, w);
-      ctx.restore();
+      ctx.fillRect(x, y, s, s);
     }
   },
-  
+
+  circle: {
+    name: 'Círculo',
+    rotations: 1,
+    draw: (ctx, x, y, s, _rotation, color = '#000000') => {
+      ctx.beginPath();
+      ctx.arc(x + s / 2, y + s / 2, s / 2, 0, Math.PI * 2);
+      ctx.fillStyle = color;
+      ctx.fill();
+    }
+  },
+
   quarter: {
     name: '1/4 Círculo',
     rotations: 4,
     draw: (ctx, x, y, s, rotation, color = '#000000') => {
-      const w = s * (STROKE_WIDTH / 100);
       ctx.save();
-      ctx.translate(x + s/2, y + s/2);
+      ctx.translate(x + s / 2, y + s / 2);
       ctx.rotate((rotation * Math.PI) / 2);
-      ctx.translate(-s/2, -s/2);
-      const radius = s - w/2;
-      ctx.beginPath();
-      ctx.arc(s, s, radius, Math.PI, Math.PI * 1.5);
-      ctx.lineWidth = w;
-      ctx.lineCap = 'butt';
-      ctx.strokeStyle = color;
-      ctx.stroke();
-      ctx.restore();
-    }
-  },
-  
-  half: {
-    name: '1/2 Círculo',
-    rotations: 4,
-    draw: (ctx, x, y, s, rotation, color = '#000000') => {
-      const w = s * (STROKE_WIDTH / 100);
-      ctx.save();
-      ctx.translate(x + s/2, y + s/2);
-      ctx.rotate((rotation * Math.PI) / 2);
-      ctx.translate(-s/2, -s/2);
-      const radius = (s/2) - w/2;
-      ctx.beginPath();
-      ctx.arc(s/2, s, radius, Math.PI, 0);
-      ctx.lineWidth = w;
-      ctx.lineCap = 'butt';
-      ctx.strokeStyle = color;
-      ctx.stroke();
-      ctx.restore();
-    }
-  },
-  
-  circle: {
-    name: 'Círculo',
-    rotations: 1,
-    draw: (ctx, x, y, s, rotation, color = '#000000') => {
-      const w = s * (STROKE_WIDTH / 100);
-      const radius = (s/2) - w/2;
-      ctx.beginPath();
-      ctx.arc(x + s/2, y + s/2, radius, 0, Math.PI * 2);
-      ctx.lineWidth = w;
-      ctx.strokeStyle = color;
-      ctx.stroke();
-    }
-  },
-  
-  diagonal: {
-    name: 'Diagonal',
-    rotations: 4,
-    draw: (ctx, x, y, s, rotation, color = '#000000') => {
-      const w = s * (STROKE_WIDTH / 100);
-      ctx.save();
-      ctx.translate(x + s/2, y + s/2);
-      ctx.rotate((rotation * Math.PI) / 2);
-      ctx.translate(-s/2, -s/2);
+      ctx.translate(-s / 2, -s / 2);
       ctx.beginPath();
       ctx.moveTo(0, 0);
-      ctx.lineTo(s, s);
-      ctx.lineWidth = w;
-      ctx.lineCap = 'butt';
-      ctx.strokeStyle = color;
-      ctx.stroke();
+      ctx.arc(0, 0, s, 0, Math.PI / 2);
+      ctx.closePath();
+      ctx.fillStyle = color;
+      ctx.fill();
       ctx.restore();
     }
   }
@@ -113,7 +60,7 @@ const state = {
   selectedCell: null,
   brushMode: false,
   brushColor: '#000000',
-  brushShape: 'line',
+  brushShape: 'square',
   brushRotation: 0,
   isPainting: false,
   isErasing: false,
@@ -158,7 +105,7 @@ const btnRotate = document.getElementById('btnRotate');
 const toggleBrush = document.getElementById('toggleBrush');
 const brushControls = document.getElementById('brushControls');
 const brushColor = document.getElementById('brushColor');
-const brushShape = document.getElementById('brushShape');
+const brushShapePicker = document.getElementById('brushShapePicker');
 
 // ========================================
 // INICIALIZACIÓN
@@ -174,9 +121,17 @@ function init() {
 
 function setupCanvas() {
   const dpr = window.devicePixelRatio || 1;
-  editorCanvas.width = 800 * dpr;
-  editorCanvas.height = 800 * dpr;
+  const base = 800;
+  const ratio = state.cols / state.rows;
+  const physW = ratio >= 1 ? base : Math.round(base * ratio);
+  const physH = ratio >= 1 ? Math.round(base / ratio) : base;
+  editorCanvas.width = physW * dpr;
+  editorCanvas.height = physH * dpr;
   editorCtx.scale(dpr, dpr);
+  const container = editorCanvas.parentElement;
+  const maxH = window.innerHeight - 140; // viewport minus header and padding
+  container.style.maxWidth = Math.floor(Math.min(800, maxH * ratio)) + 'px';
+  container.style.aspectRatio = `${state.cols} / ${state.rows}`;
 }
 
 function populateShapeSelect() {
@@ -189,16 +144,31 @@ function populateShapeSelect() {
   });
 }
 
+const SHAPE_ICONS = {
+  square:  `<svg viewBox="0 0 20 20" fill="currentColor"><rect x="2" y="2" width="16" height="16"/></svg>`,
+  circle:  `<svg viewBox="0 0 20 20" fill="currentColor"><circle cx="10" cy="10" r="8"/></svg>`,
+  quarter: `<svg viewBox="0 0 20 20" fill="currentColor"><path d="M2,2 L18,2 A16,16,0,0,1 2,18 Z"/></svg>`,
+};
+
 function populateBrushShapeSelect() {
-  brushShape.innerHTML = '';
+  if (!brushShapePicker) return;
+  brushShapePicker.innerHTML = '';
   Object.entries(SHAPES).forEach(([shapeId, shape]) => {
     if (shapeId === 'empty') return;
-    const option = document.createElement('option');
-    option.value = shapeId;
-    option.textContent = shape.name;
-    brushShape.appendChild(option);
+    const btn = document.createElement('button');
+    btn.className = 'shape-btn' + (shapeId === state.brushShape ? ' active' : '');
+    btn.dataset.shape = shapeId;
+    btn.title = shape.name;
+    btn.innerHTML = SHAPE_ICONS[shapeId] ?? shape.name;
+    btn.addEventListener('click', () => {
+      state.brushShape = shapeId;
+      state.brushRotation = 0;
+      brushShapePicker.querySelectorAll('.shape-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      renderEditor();
+    });
+    brushShapePicker.appendChild(btn);
   });
-  brushShape.value = 'line';
 }
 
 // ========================================
@@ -213,71 +183,64 @@ function renderEditor() {
   
   ctx.clearRect(0, 0, w, h);
   
-  const cellSizeW = w / state.cols;
-  const cellSizeH = h / state.rows;
-  const cellSize = Math.min(cellSizeW, cellSizeH);
-  
-  const gridWidth = cellSize * state.cols;
-  const gridHeight = cellSize * state.rows;
-  const offsetX = (w - gridWidth) / 2;
-  const offsetY = (h - gridHeight) / 2;
-  
+  const cellSize = w / state.cols;
+
   // Grilla
   ctx.strokeStyle = '#d0d0d0';
   ctx.lineWidth = 1;
   for (let i = 0; i <= state.cols; i++) {
     ctx.beginPath();
-    ctx.moveTo(offsetX + i * cellSize, offsetY);
-    ctx.lineTo(offsetX + i * cellSize, offsetY + gridHeight);
+    ctx.moveTo(i * cellSize, 0);
+    ctx.lineTo(i * cellSize, h);
     ctx.stroke();
   }
   for (let i = 0; i <= state.rows; i++) {
     ctx.beginPath();
-    ctx.moveTo(offsetX, offsetY + i * cellSize);
-    ctx.lineTo(offsetX + gridWidth, offsetY + i * cellSize);
+    ctx.moveTo(0, i * cellSize);
+    ctx.lineTo(w, i * cellSize);
     ctx.stroke();
   }
-  
+
   // Formas
   ctx.lineCap = 'butt';
   ctx.lineJoin = 'miter';
-  
+
   state.grid.forEach((row, rowIndex) => {
     row.forEach((cell, colIndex) => {
       const shape = SHAPES[cell.shape];
       if (shape && cell.shape !== 'empty') {
-        const x = offsetX + colIndex * cellSize;
-        const y = offsetY + rowIndex * cellSize;
+        const x = colIndex * cellSize;
+        const y = rowIndex * cellSize;
         shape.draw(ctx, x, y, cellSize, cell.rotation, cell.color);
       }
     });
   });
-  
+
   // Celda seleccionada
   if (state.selectedCell && !state.brushMode) {
     const { row, col } = state.selectedCell;
-    const x = offsetX + col * cellSize;
-    const y = offsetY + row * cellSize;
+    const x = col * cellSize;
+    const y = row * cellSize;
     ctx.strokeStyle = '#000000';
     ctx.lineWidth = 2;
     ctx.strokeRect(x + 2, y + 2, cellSize - 4, cellSize - 4);
   }
-  
+
   // Hover (solo si no está en modo pincel)
   if (state.hoveredCell && !state.selectedCell && !state.brushMode) {
     const { row, col } = state.hoveredCell;
-    const x = offsetX + col * cellSize;
-    const y = offsetY + row * cellSize;
+    const x = col * cellSize;
+    const y = row * cellSize;
     ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
     ctx.fillRect(x + 4, y + 4, cellSize - 8, cellSize - 8);
   }
-  
+
   // Preview del pincel
   if (state.hoveredCell && state.brushMode && !state.isPainting) {
     const { row, col } = state.hoveredCell;
-    const x = offsetX + col * cellSize;
-    const y = offsetY + row * cellSize;
-    
+    const x = col * cellSize;
+    const y = row * cellSize;
+
     ctx.save();
     ctx.globalAlpha = 0.4;
     const shape = SHAPES[state.brushShape];
@@ -422,32 +385,21 @@ function resizeGrid(newCols, newRows) {
   
   colsValue.textContent = newCols;
   rowsValue.textContent = newRows;
+  setupCanvas();
 }
 
 function getCellFromEvent(e) {
   const rect = editorCanvas.getBoundingClientRect();
   const x = e.clientX - rect.left;
   const y = e.clientY - rect.top;
-  
-  const w = rect.width;
-  const h = rect.height;
-  
-  const cellSizeW = w / state.cols;
-  const cellSizeH = h / state.rows;
-  const cellSize = Math.min(cellSizeW, cellSizeH);
-  
-  const gridWidth = cellSize * state.cols;
-  const gridHeight = cellSize * state.rows;
-  const offsetX = (w - gridWidth) / 2;
-  const offsetY = (h - gridHeight) / 2;
-  
-  const col = Math.floor((x - offsetX) / cellSize);
-  const row = Math.floor((y - offsetY) / cellSize);
-  
+
+  const col = Math.floor(x / (rect.width / state.cols));
+  const row = Math.floor(y / (rect.height / state.rows));
+
   if (row >= 0 && row < state.rows && col >= 0 && col < state.cols) {
     return { row, col };
   }
-  
+
   return null;
 }
 
@@ -550,13 +502,6 @@ function setupEventListeners() {
   // Color del pincel
   brushColor.addEventListener('input', (e) => {
     state.brushColor = e.target.value;
-  });
-  
-  // Forma del pincel
-  brushShape.addEventListener('change', (e) => {
-    state.brushShape = e.target.value;
-    state.brushRotation = 0;
-    renderEditor();
   });
   
   // Rotar forma del pincel con tecla R

@@ -164,7 +164,6 @@ body {
 .canvas-container {
   width: 100%;
   max-width: 800px;
-  aspect-ratio: 1;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: var(--bg);
@@ -388,4 +387,43 @@ body {
 .color-input::-moz-color-swatch {
   border: none;
   border-radius: 3px;
+}
+/* ── Brush shape graphical picker ── */
+.shape-picker {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.shape-btn {
+  width: 28px;
+  height: 28px;
+  padding: 4px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--fg);
+  cursor: pointer;
+  border-radius: var(--radius);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.1s, border-color 0.1s, color 0.1s;
+}
+
+.shape-btn:hover {
+  background: var(--hover-bg);
+  border-color: var(--border-hover);
+}
+
+.shape-btn.active {
+  background: var(--fg);
+  color: var(--bg);
+  border-color: var(--fg);
+}
+
+.shape-btn svg {
+  width: 100%;
+  height: 100%;
+  display: block;
 }

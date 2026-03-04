@@ -298,7 +298,7 @@ const toggleGuides = document.getElementById('toggleGuides');
 const toggleBrush = document.getElementById('toggleBrush');
 const brushControls = document.getElementById('brushControls');
 const brushColor = document.getElementById('brushColor');
-const brushShape = document.getElementById('brushShape');
+const brushShapePicker = document.getElementById('brushShapePicker');
 
 const btnPrevLetter = document.getElementById('btnPrevLetter');
 const btnNextLetter = document.getElementById('btnNextLetter');
@@ -317,13 +317,28 @@ function init() {
   renderEditor();
   renderPreview();
   setupEventListeners();
+
+  // Recompute grid layout whenever the alphabet panel is resized
+  const alphabetContent = document.querySelector('body.editor-app .alphabet-content');
+  if (alphabetContent && typeof ResizeObserver !== 'undefined') {
+    new ResizeObserver(() => updateAlphabetLayout()).observe(alphabetContent);
+  }
 }
 
 function setupCanvas() {
   const dpr = window.devicePixelRatio || 1;
-  editorCanvas.width = 480 * dpr;
-  editorCanvas.height = 480 * dpr;
+  const base = 480;
+  const cols = state.gridCols;
+  const rows = state.gridRows;
+  const ratio = cols / rows;
+  const physW = ratio >= 1 ? base : Math.round(base * ratio);
+  const physH = ratio >= 1 ? Math.round(base / ratio) : base;
+  editorCanvas.width = physW * dpr;
+  editorCanvas.height = physH * dpr;
   editorCtx.scale(dpr, dpr);
+  const maxH = window.innerHeight - 160;
+  editorCanvas.parentElement.style.maxWidth = Math.floor(Math.min(window.innerHeight - 180, maxH * ratio)) + 'px';
+  editorCanvas.parentElement.style.aspectRatio = `${cols} / ${rows}`;
   previewCanvas.width = 800 * dpr;
   previewCanvas.height = 120 * dpr;
   previewCtx.scale(dpr, dpr);
@@ -350,16 +365,31 @@ function populateShapeSelect() {
   });
 }
 
+const SHAPE_ICONS = {
+  square:  `<svg viewBox="0 0 20 20" fill="currentColor"><rect x="2" y="2" width="16" height="16"/></svg>`,
+  circle:  `<svg viewBox="0 0 20 20" fill="currentColor"><circle cx="10" cy="10" r="8"/></svg>`,
+  quarter: `<svg viewBox="0 0 20 20" fill="currentColor"><path d="M2,2 L18,2 A16,16,0,0,1 2,18 Z"/></svg>`,
+};
+
 function populateBrushShapeSelect() {
-  brushShape.innerHTML = '';
+  if (!brushShapePicker) return;
+  brushShapePicker.innerHTML = '';
   Object.entries(SHAPES).forEach(([shapeId, shape]) => {
     if (shapeId === 'empty') return;
-    const option = document.createElement('option');
-    option.value = shapeId;
-    option.textContent = shape.name;
-    brushShape.appendChild(option);
+    const btn = document.createElement('button');
+    btn.className = 'shape-btn' + (shapeId === state.brushShape ? ' active' : '');
+    btn.dataset.shape = shapeId;
+    btn.title = shape.name;
+    btn.innerHTML = SHAPE_ICONS[shapeId] ?? shape.name;
+    btn.addEventListener('click', () => {
+      state.brushShape = shapeId;
+      state.brushRotation = 0;
+      brushShapePicker.querySelectorAll('.shape-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      renderEditor();
+    });
+    brushShapePicker.appendChild(btn);
   });
-  brushShape.value = 'square';
 }
 
 function updateGridInfo() {
@@ -367,9 +397,9 @@ function updateGridInfo() {
   colsValue.textContent = state.gridCols;
   rowsValue.textContent = state.proportionsEnabled ? letter.rows : state.gridRows;
   gridInfo.textContent = `Grilla ${state.gridCols}×${letter.rows}`;
-  xHeightValue.textContent = state.xHeight;
-  ascenderValue.textContent = state.ascender;
-  descenderValue.textContent = state.descender;
+  if (xHeightValue) xHeightValue.textContent = state.xHeight;
+  if (ascenderValue) ascenderValue.textContent = state.ascender;
+  if (descenderValue) descenderValue.textContent = state.descender;
 }
 
 function adjustLetterHeight(letter) {
@@ -422,126 +452,134 @@ function changeGlobalGridRows(newRows) {
 // ========================================
 
 function renderEditor() {
-  const canvas = editorCanvas;
-  const ctx = editorCtx;
-  const w = canvas.width / (window.devicePixelRatio || 1);
-  const h = canvas.height / (window.devicePixelRatio || 1);
-  
-  ctx.clearRect(0, 0, w, h);
-  
   const letter = state.letters[state.currentLetter];
   const gridCols = letter.cols;
   const gridRows = letter.rows;
-  
-  const cellSizeW = w / gridCols;
-  const cellSizeH = h / gridRows;
-  const cellSize = Math.min(cellSizeW, cellSizeH);
-  
-  const gridWidth = cellSize * gridCols;
-  const gridHeight = cellSize * gridRows;
-  const offsetX = (w - gridWidth) / 2;
-  const offsetY = (h - gridHeight) / 2;
-  
+
+  // Update canvas physical dimensions and container aspect-ratio for current grid
+  const dpr = window.devicePixelRatio || 1;
+  const base = 480;
+  const ratio = gridCols / gridRows;
+  const physW = ratio >= 1 ? base : Math.round(base * ratio);
+  const physH = ratio >= 1 ? Math.round(base / ratio) : base;
+  if (editorCanvas.width !== physW * dpr || editorCanvas.height !== physH * dpr) {
+    editorCanvas.width = physW * dpr;
+    editorCanvas.height = physH * dpr;
+    editorCtx.scale(dpr, dpr);
+  }
+  const maxH = window.innerHeight - 160;
+  editorCanvas.parentElement.style.maxWidth = Math.floor(Math.min(window.innerHeight - 180, maxH * ratio)) + 'px';
+  editorCanvas.parentElement.style.aspectRatio = `${gridCols} / ${gridRows}`;
+
+  const canvas = editorCanvas;
+  const ctx = editorCtx;
+  const w = canvas.width / dpr;
+  const h = canvas.height / dpr;
+
+  ctx.clearRect(0, 0, w, h);
+
+  const cellSize = w / gridCols;
+
   // Grilla
   ctx.strokeStyle = '#d0d0d0';
   ctx.lineWidth = 1;
   for (let i = 0; i <= gridCols; i++) {
     ctx.beginPath();
-    ctx.moveTo(offsetX + i * cellSize, offsetY);
-    ctx.lineTo(offsetX + i * cellSize, offsetY + gridHeight);
+    ctx.moveTo(i * cellSize, 0);
+    ctx.lineTo(i * cellSize, h);
     ctx.stroke();
   }
   for (let i = 0; i <= gridRows; i++) {
     ctx.beginPath();
-    ctx.moveTo(offsetX, offsetY + i * cellSize);
-    ctx.lineTo(offsetX + gridWidth, offsetY + i * cellSize);
+    ctx.moveTo(0, i * cellSize);
+    ctx.lineTo(w, i * cellSize);
     ctx.stroke();
   }
-  
+
   ctx.lineCap = 'butt';
   ctx.lineJoin = 'miter';
   ctx.strokeStyle = '#000000';
   ctx.fillStyle = '#000000';
-  
+
   // Guías
   if (state.showGuides && state.proportionsEnabled) {
     const type = getLetterType(state.currentLetter);
     ctx.strokeStyle = 'rgba(255, 0, 0, 0.3)';
     ctx.lineWidth = 1;
     ctx.setLineDash([5, 5]);
-    
-    let baselineY = offsetY;
+
+    let baselineY = 0;
     if (type === 'descender') {
-      baselineY = offsetY + state.descender * cellSize;
+      baselineY = state.descender * cellSize;
     }
-    
+
     ctx.beginPath();
-    ctx.moveTo(offsetX, baselineY);
-    ctx.lineTo(offsetX + gridWidth, baselineY);
+    ctx.moveTo(0, baselineY);
+    ctx.lineTo(w, baselineY);
     ctx.stroke();
-    
+
     const xHeightY = baselineY - state.xHeight * cellSize;
     ctx.beginPath();
-    ctx.moveTo(offsetX, xHeightY);
-    ctx.lineTo(offsetX + gridWidth, xHeightY);
+    ctx.moveTo(0, xHeightY);
+    ctx.lineTo(w, xHeightY);
     ctx.stroke();
-    
+
     if (type === 'ascender' || type === 'cap') {
       const capY = baselineY - (state.xHeight + state.ascender) * cellSize;
       ctx.beginPath();
-      ctx.moveTo(offsetX, capY);
-      ctx.lineTo(offsetX + gridWidth, capY);
+      ctx.moveTo(0, capY);
+      ctx.lineTo(w, capY);
       ctx.stroke();
     }
-    
+
     if (type === 'descender') {
       const descY = baselineY + state.descender * cellSize;
       ctx.beginPath();
-      ctx.moveTo(offsetX, descY);
-      ctx.lineTo(offsetX + gridWidth, descY);
+      ctx.moveTo(0, descY);
+      ctx.lineTo(w, descY);
       ctx.stroke();
     }
-    
+
     ctx.setLineDash([]);
     ctx.strokeStyle = '#000000';
   }
-  
+
   // Formas
   letter.grid.forEach((row, rowIndex) => {
     row.forEach((cell, colIndex) => {
       const shape = SHAPES[cell.shape];
       if (shape && cell.shape !== 'empty') {
-        const x = offsetX + colIndex * cellSize;
-        const y = offsetY + rowIndex * cellSize;
+        const x = colIndex * cellSize;
+        const y = rowIndex * cellSize;
         shape.draw(ctx, x, y, cellSize, cell.rotation, cell.color);
       }
     });
   });
-  
+
   // Celda seleccionada
   if (state.selectedCell && !state.brushMode) {
     const { row, col } = state.selectedCell;
-    const x = offsetX + col * cellSize;
-    const y = offsetY + row * cellSize;
+    const x = col * cellSize;
+    const y = row * cellSize;
     ctx.strokeStyle = '#000000';
     ctx.lineWidth = 2;
     ctx.strokeRect(x + 2, y + 2, cellSize - 4, cellSize - 4);
   }
-  
+
   // Hover
   if (state.hoveredCell && !state.selectedCell && !state.brushMode) {
     const { row, col } = state.hoveredCell;
-    const x = offsetX + col * cellSize;
-    const y = offsetY + row * cellSize;
+    const x = col * cellSize;
+    const y = row * cellSize;
     ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
     ctx.fillRect(x + 4, y + 4, cellSize - 8, cellSize - 8);
   }
-  
+
   // Preview del pincel
   if (state.hoveredCell && state.brushMode && !state.isPainting) {
     const { row, col } = state.hoveredCell;
-    const x = offsetX + col * cellSize;
-    const y = offsetY + row * cellSize;
+    const x = col * cellSize;
+    const y = row * cellSize;
     ctx.save();
     ctx.globalAlpha = 0.4;
     const shape = SHAPES[state.brushShape];
@@ -550,7 +588,7 @@ function renderEditor() {
     }
     ctx.restore();
   }
-  
+
   currentLetterLabel.textContent = state.currentLetter;
 }
 
@@ -656,6 +694,49 @@ function renderAlphabetGrid() {
     
     alphabetGrid.appendChild(card);
   });
+
+  updateAlphabetLayout();
+}
+
+function updateAlphabetLayout() {
+  const grid = document.getElementById('alphabetGrid');
+  const content = document.querySelector('body.editor-app .alphabet-content');
+  if (!grid || !content) return;
+
+  const W = content.clientWidth;
+  const h2El = content.querySelector('h2');
+  const H = content.clientHeight - (h2El ? h2El.offsetHeight + 12 : 0);
+  const count = ALPHABET.length;
+
+  // Find N columns that minimises |cellWidth/cellHeight − 1| (closest to square)
+  // given grid-auto-rows: 1fr fills the available height
+  let bestN = 4;
+  let bestScore = Infinity;
+  for (let n = 2; n <= Math.min(count, 12); n++) {
+    const m = Math.ceil(count / n);
+    const cellW = W / n;
+    const cellH = H / m;
+    const score = Math.abs(cellW / cellH - 1);
+    if (score < bestScore) {
+      bestScore = score;
+      bestN = n;
+    }
+  }
+
+  grid.style.gridTemplateColumns = `repeat(${bestN}, 1fr)`;
+  grid.style.gridAutoRows = '1fr';
+
+  // Remove old placeholders then add exactly what's needed to fill the last row
+  grid.querySelectorAll('.placeholder-card').forEach(el => el.remove());
+  const remainder = count % bestN;
+  if (remainder !== 0) {
+    const needed = bestN - remainder;
+    for (let i = 0; i < needed; i++) {
+      const ph = document.createElement('div');
+      ph.className = 'placeholder-card';
+      grid.appendChild(ph);
+    }
+  }
 }
 
 function renderLetterThumbnail(canvas, letter) {
@@ -847,30 +928,18 @@ function getCellFromEvent(e) {
   const rect = editorCanvas.getBoundingClientRect();
   const x = e.clientX - rect.left;
   const y = e.clientY - rect.top;
-  
-  const w = rect.width;
-  const h = rect.height;
-  
+
   const letter = state.letters[state.currentLetter];
   const gridCols = letter.cols;
   const gridRows = letter.rows;
-  
-  const cellSizeW = w / gridCols;
-  const cellSizeH = h / gridRows;
-  const cellSize = Math.min(cellSizeW, cellSizeH);
-  
-  const gridWidth = cellSize * gridCols;
-  const gridHeight = cellSize * gridRows;
-  const offsetX = (w - gridWidth) / 2;
-  const offsetY = (h - gridHeight) / 2;
-  
-  const col = Math.floor((x - offsetX) / cellSize);
-  const row = Math.floor((y - offsetY) / cellSize);
-  
+
+  const col = Math.floor(x / (rect.width / gridCols));
+  const row = Math.floor(y / (rect.height / gridRows));
+
   if (row >= 0 && row < gridRows && col >= 0 && col < gridCols) {
     return { row, col };
   }
-  
+
   return null;
 }
 
@@ -1166,12 +1235,6 @@ function setupEventListeners() {
   
   brushColor?.addEventListener('input', (e) => {
     state.brushColor = e.target.value;
-  });
-  
-  brushShape?.addEventListener('change', (e) => {
-    state.brushShape = e.target.value;
-    state.brushRotation = 0;
-    renderEditor();
   });
   
   // Navegación de letras
