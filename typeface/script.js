@@ -141,6 +141,7 @@ ALPHABET.forEach(letter => {
 
 const STORAGE_KEY = 'modular-type-v1';
 let _saveTimer = null;
+let _previewTimer = null;
 
 function saveToStorage() {
   clearTimeout(_saveTimer);
@@ -323,7 +324,6 @@ const colsValue = document.getElementById('colsValue');
 const rowsValue = document.getElementById('rowsValue');
 
 const cellControls = document.getElementById('cellControls');
-const noCellSelected = document.getElementById('noCellSelected');
 const shapeSelect = document.getElementById('shapeSelect');
 const btnRotate = document.getElementById('btnRotate');
 
@@ -982,8 +982,11 @@ function paintCell(row, col) {
     };
   }
   renderEditor();
-  renderPreview();
-  updateLetterThumbnail(state.currentLetter);
+  clearTimeout(_previewTimer);
+  _previewTimer = setTimeout(() => {
+    renderPreview();
+    updateLetterThumbnail(state.currentLetter);
+  }, 80);
 }
 
 // ========================================
@@ -1074,14 +1077,11 @@ function updateCellControls() {
     const { row, col } = state.selectedCell;
     const letter = state.letters[state.currentLetter];
     const cell = letter.grid[row][col];
-    
+
     cellControls.style.display = 'flex';
-    noCellSelected.style.display = 'none';
-    
     shapeSelect.value = cell.shape;
   } else {
     cellControls.style.display = 'none';
-    noCellSelected.style.display = 'block';
   }
 }
 
