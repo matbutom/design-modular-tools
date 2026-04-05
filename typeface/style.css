@@ -326,7 +326,7 @@ body {
   overflow: visible;
   position: relative;
   transition: width 0.3s ease, padding 0.3s ease;
-  width: 260px;
+  width: 330px;
 }
 
 .alphabet.collapsed {
@@ -1363,6 +1363,65 @@ body.editor-app .alphabet-content h2 {
   flex-shrink: 0;
 }
 
+body.editor-app .alphabet-tabs {
+  display: flex;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 20px;
+}
+
+body.editor-app .alphabet-tab {
+  flex: 1;
+  padding: 7px 0;
+  font-size: 10px;
+  font-family: inherit;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #999;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+  margin-bottom: -1px;
+}
+
+body.editor-app .alphabet-tab:hover {
+  color: var(--fg);
+}
+
+body.editor-app .alphabet-tab.active {
+  color: var(--fg);
+  border-bottom-color: var(--fg);
+}
+
+/* Alternativas: card de añadir */
+body.editor-app .alt-add-card {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px dashed var(--border);
+  background: transparent;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+body.editor-app .alt-add-card:hover {
+  border-color: var(--fg);
+  background: var(--hover-bg);
+}
+
+body.editor-app .alt-add-icon {
+  font-size: 22px;
+  font-weight: 300;
+  color: #aaa;
+  line-height: 1;
+}
+
+body.editor-app .alt-add-card:hover .alt-add-icon {
+  color: var(--fg);
+}
+
 /* Hide moved editor-actions */
 body.editor-app .editor-actions {
   display: none;
@@ -1579,7 +1638,7 @@ body.editor-app .letter-card canvas {
 }
 
 body.editor-app .letter-card-header {
-  font-size: 7px;
+  font-size: 10px;
   margin-bottom: 1px;
 }
 

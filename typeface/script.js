@@ -66,6 +66,9 @@ const state = {
   descender: 1,
   showGuides: false,
   proportionsEnabled: false,
+  currentPage: 'letters',
+  alternatives: {},  // { 'A': ['A_alt_0', 'A_alt_1'], ... }
+  altBaseLetter: 'A',
   brushMode: true, // Activado por defecto
   brushColor: '#000000',
   brushShape: 'square',
@@ -117,6 +120,16 @@ function getLetterHeight(letter) {
 
 const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'.split('');
 
+const SYMBOLS = ['.', ',', ':', ';', '!', '?', "'", '"', '(', ')', '[', ']', '@', '#', '&', '*', '-', '+', '=', '/', '%', '_', '¡', '¿'];
+const SYMBOL_NAMES = {
+  '.': 'Punto', ',': 'Coma', ':': 'Dos puntos', ';': 'Pto y coma',
+  '!': 'Exclamación', '?': 'Interrogación', "'": 'Apóstrofe', '"': 'Comillas',
+  '(': 'Parén. ab.', ')': 'Parén. ci.', '[': 'Corch. ab.', ']': 'Corch. ci.',
+  '@': 'Arroba', '#': 'Numeral', '&': 'Ampersand', '*': 'Asterisco',
+  '-': 'Guión', '+': 'Más', '=': 'Igual', '/': 'Barra', '%': 'Porcentaje',
+  '_': 'Guión bajo', '¡': 'Apertura exc.', '¿': 'Apertura int.'
+};
+
 function initLetter(letter) {
   const rows = getLetterHeight(letter);
   const cols = state.gridCols;
@@ -134,6 +147,9 @@ function initLetter(letter) {
 ALPHABET.forEach(letter => {
   state.letters[letter] = initLetter(letter);
 });
+SYMBOLS.forEach(sym => {
+  state.letters[sym] = initLetter(sym);
+});
 
 // ========================================
 // PERSISTENCIA (localStorage)
@@ -149,6 +165,7 @@ function saveToStorage() {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify({
         letters: state.letters,
+        alternatives: state.alternatives,
         gridCols: state.gridCols,
         gridRows: state.gridRows,
         xHeight: state.xHeight,
@@ -198,7 +215,8 @@ function loadFromStorage() {
     if (!raw) return false;
     const saved = JSON.parse(raw);
     if (!saved || typeof saved !== 'object') return false;
-    if (saved.letters)                            state.letters = saved.letters;
+    if (saved.letters)                            Object.keys(saved.letters).forEach(k => { state.letters[k] = saved.letters[k]; });
+    if (saved.alternatives && typeof saved.alternatives === 'object') state.alternatives = saved.alternatives;
     if (typeof saved.gridCols === 'number')       state.gridCols = saved.gridCols;
     if (typeof saved.gridRows === 'number')       state.gridRows = saved.gridRows;
     if (typeof saved.xHeight === 'number')        state.xHeight = saved.xHeight;
@@ -212,21 +230,64 @@ function loadFromStorage() {
 }
 
 // ========================================
-// NAVEGACIÓN DE LETRAS
+// HELPERS DE ALTERNATIVAS
 // ========================================
 
+function isAltKey(key) {
+  return typeof key === 'string' && key.includes('_alt_');
+}
+
+function getAltBase(key) {
+  return key.split('_alt_')[0];
+}
+
+function formatCurrentLetterLabel() {
+  const key = state.currentLetter;
+  if (!isAltKey(key)) return key;
+  const base = getAltBase(key);
+  const alts = state.alternatives[base] || [];
+  const idx = alts.indexOf(key);
+  return `${base}·${idx + 1}`;
+}
+
+// ========================================
+// NAVEGACIÓN DE LETRAS / SÍMBOLOS
+// ========================================
+
+function currentPageChars() {
+  return state.currentPage === 'symbols' ? SYMBOLS : ALPHABET;
+}
+
 function navigateToLetter(direction) {
-  const currentIndex = ALPHABET.indexOf(state.currentLetter);
+  if (state.currentPage === 'alts') {
+    const chars = [...ALPHABET, ...SYMBOLS];
+    const currentIndex = chars.indexOf(state.altBaseLetter);
+    const newIndex = direction === 'next'
+      ? (currentIndex + 1) % chars.length
+      : (currentIndex - 1 + chars.length) % chars.length;
+    state.altBaseLetter = chars[newIndex];
+    state.currentLetter = state.altBaseLetter;
+    state.selectedCell = null;
+    letterSelect.value = state.altBaseLetter;
+    updateGridInfo();
+    updateCellControls();
+    renderEditor();
+    renderAlternativesPanel();
+    return;
+  }
+
+  const chars = currentPageChars();
+  const currentIndex = chars.indexOf(state.currentLetter);
   const prev = state.currentLetter;
   let newIndex;
 
   if (direction === 'next') {
-    newIndex = (currentIndex + 1) % ALPHABET.length;
+    newIndex = (currentIndex + 1) % chars.length;
   } else {
-    newIndex = (currentIndex - 1 + ALPHABET.length) % ALPHABET.length;
+    newIndex = (currentIndex - 1 + chars.length) % chars.length;
   }
 
-  state.currentLetter = ALPHABET[newIndex];
+  state.currentLetter = chars[newIndex];
   state.selectedCell = null;
   letterSelect.value = state.currentLetter;
   updateGridInfo();
@@ -361,6 +422,9 @@ const brushShapePicker = document.getElementById('brushShapePicker');
 
 const btnPrevLetter = document.getElementById('btnPrevLetter');
 const btnNextLetter = document.getElementById('btnNextLetter');
+const tabLetters = document.getElementById('tabLetters');
+const tabSymbols = document.getElementById('tabSymbols');
+const tabAlts = document.getElementById('tabAlts');
 
 // ========================================
 // INICIALIZACIÓN
@@ -413,13 +477,14 @@ function setupCanvas() {
 
 function populateLetterSelect() {
   letterSelect.innerHTML = '';
-  ALPHABET.forEach(letter => {
+  const chars = state.currentPage === 'alts' ? [...ALPHABET, ...SYMBOLS] : currentPageChars();
+  chars.forEach(char => {
     const option = document.createElement('option');
-    option.value = letter;
-    option.textContent = letter;
+    option.value = char;
+    option.textContent = state.currentPage === 'symbols' ? `${char} ${SYMBOL_NAMES[char] || char}` : char;
     letterSelect.appendChild(option);
   });
-  letterSelect.value = state.currentLetter;
+  letterSelect.value = state.currentPage === 'alts' ? state.altBaseLetter : state.currentLetter;
 }
 
 function populateShapeSelect() {
@@ -672,7 +737,7 @@ function renderEditor() {
     ctx.restore();
   }
 
-  currentLetterLabel.textContent = state.currentLetter;
+  currentLetterLabel.textContent = formatCurrentLetterLabel();
 }
 
 function renderPreview() {
@@ -820,9 +885,10 @@ function closePreviewOverlay() {
 }
 
 function renderAlphabetGrid() {
+  if (state.currentPage === 'alts') { renderAlternativesPanel(); return; }
   alphabetGrid.innerHTML = '';
 
-  ALPHABET.forEach(letter => {
+  currentPageChars().forEach(letter => {
     const card = document.createElement('div');
     card.className = 'letter-card';
     card.dataset.letter = letter;
@@ -834,6 +900,7 @@ function renderAlphabetGrid() {
     const name = document.createElement('span');
     name.className = 'letter-name';
     name.textContent = letter;
+    if (state.currentPage === 'symbols') name.title = SYMBOL_NAMES[letter] || letter;
 
     const status = document.createElement('span');
     status.className = 'letter-status';
@@ -871,17 +938,111 @@ function renderAlphabetGrid() {
   updateAlphabetLayout();
 }
 
+// ========================================
+// PANEL DE ALTERNATIVAS
+// ========================================
+
+function renderAlternativesPanel() {
+  alphabetGrid.innerHTML = '';
+  const letter = state.altBaseLetter;
+
+  // Card principal
+  appendAltCard(letter, letter === state.currentLetter, letter);
+
+  // Cards de alternativas
+  const alts = state.alternatives[letter] || [];
+  alts.forEach((altKey, i) => {
+    appendAltCard(altKey, altKey === state.currentLetter, `${letter}·${i + 1}`);
+  });
+
+  // Botón añadir
+  const addCard = document.createElement('div');
+  addCard.className = 'letter-card alt-add-card';
+  addCard.title = 'Agregar alternativa';
+  addCard.innerHTML = '<span class="alt-add-icon">+</span>';
+  addCard.addEventListener('click', () => addAlternative(letter));
+  alphabetGrid.appendChild(addCard);
+
+  updateAlphabetLayout();
+}
+
+function appendAltCard(key, isActive, label) {
+  const card = document.createElement('div');
+  card.className = 'letter-card' + (isActive ? ' active' : '');
+  card.dataset.letter = key;
+
+  const header = document.createElement('div');
+  header.className = 'letter-card-header';
+
+  const name = document.createElement('span');
+  name.className = 'letter-name';
+  name.textContent = label;
+
+  const status = document.createElement('span');
+  status.className = 'letter-status';
+  const letterData = state.letters[key];
+  const hasContent = letterData?.grid.some(row => row.some(cell => cell.shape !== 'empty'));
+  status.textContent = hasContent ? '●' : '○';
+
+  header.appendChild(name);
+  header.appendChild(status);
+
+  const canvas = document.createElement('canvas');
+  canvas.width = 80;
+  canvas.height = 80;
+  renderLetterThumbnail(canvas, key);
+
+  card.appendChild(header);
+  card.appendChild(canvas);
+
+  card.addEventListener('click', () => {
+    const prev = state.currentLetter;
+    state.currentLetter = key;
+    state.selectedCell = null;
+    updateGridInfo();
+    updateCellControls();
+    renderEditor();
+    updateAlphabetActive(prev);
+  });
+
+  alphabetGrid.appendChild(card);
+}
+
+function addAlternative(letter) {
+  if (!state.alternatives[letter]) state.alternatives[letter] = [];
+  const idx = state.alternatives[letter].length;
+  const key = `${letter}_alt_${idx}`;
+  const base = state.letters[letter];
+  state.letters[key] = {
+    grid: base.grid.map(row => row.map(() => ({ shape: 'empty', rotation: 0, color: '#000000' }))),
+    cols: base.cols,
+    rows: base.rows
+  };
+  state.alternatives[letter].push(key);
+  state.currentLetter = key;
+  state.selectedCell = null;
+  renderAlternativesPanel();
+  updateCellControls();
+  renderEditor();
+  saveToStorage();
+}
+
+// Busca una card por su dataset.letter (seguro con caracteres especiales)
+function findLetterCard(letter) {
+  return Array.from(alphabetGrid.children).find(el => el.dataset.letter === letter) || null;
+}
+
 // Actualiza solo el estado activo en el panel — sin reconstruir el DOM
 function updateAlphabetActive(prevLetter) {
   if (prevLetter) {
-    alphabetGrid.querySelector(`[data-letter="${prevLetter}"]`)?.classList.remove('active');
+    findLetterCard(prevLetter)?.classList.remove('active');
   }
-  alphabetGrid.querySelector(`[data-letter="${state.currentLetter}"]`)?.classList.add('active');
+  findLetterCard(state.currentLetter)?.classList.add('active');
 }
 
 // Re-renderiza solo el thumbnail y el punto de estado de una letra concreta
 function updateLetterThumbnail(letter) {
-  const card = alphabetGrid.querySelector(`[data-letter="${letter}"]`);
+  const card = findLetterCard(letter);
   if (!card) return;
   const canvas = card.querySelector('canvas');
   if (canvas) renderLetterThumbnail(canvas, letter);
@@ -898,16 +1059,20 @@ function updateAlphabetLayout() {
   const content = document.querySelector('body.editor-app .alphabet-content');
   if (!grid || !content) return;
 
+  // Count actual content cards (not placeholders)
+  grid.querySelectorAll('.placeholder-card').forEach(el => el.remove());
+  const count = grid.children.length;
+  if (count === 0) return;
+
   const W = content.clientWidth;
-  const h2El = content.querySelector('h2');
-  const H = content.clientHeight - (h2El ? h2El.offsetHeight + 12 : 0);
-  const count = ALPHABET.length;
+  const tabsEl = content.querySelector('.alphabet-tabs');
+  const tabsH = tabsEl ? tabsEl.offsetHeight : 0;
+  const H = content.clientHeight - tabsH;
 
   // Find N columns that minimises |cellWidth/cellHeight − 1| (closest to square)
-  // given grid-auto-rows: 1fr fills the available height
-  let bestN = 4;
+  let bestN = Math.min(4, count);
   let bestScore = Infinity;
-  for (let n = 2; n <= Math.min(count, 12); n++) {
+  for (let n = 1; n <= Math.min(count, 12); n++) {
     const m = Math.ceil(count / n);
     const cellW = W / n;
     const cellH = H / m;
@@ -921,8 +1086,7 @@ function updateAlphabetLayout() {
   grid.style.gridTemplateColumns = `repeat(${bestN}, 1fr)`;
   grid.style.gridAutoRows = '1fr';
 
-  // Remove old placeholders then add exactly what's needed to fill the last row
-  grid.querySelectorAll('.placeholder-card').forEach(el => el.remove());
+  // Add placeholders to fill the last row
   const remainder = count % bestN;
   if (remainder !== 0) {
     const needed = bestN - remainder;
@@ -1329,12 +1493,22 @@ function importJSON(e) {
 function setupEventListeners() {
   letterSelect.addEventListener('change', (e) => {
     const prev = state.currentLetter;
-    state.currentLetter = e.target.value;
-    state.selectedCell = null;
-    updateGridInfo();
-    updateCellControls();
-    renderEditor();
-    updateAlphabetActive(prev);
+    if (state.currentPage === 'alts') {
+      state.altBaseLetter = e.target.value;
+      state.currentLetter = e.target.value;
+      state.selectedCell = null;
+      updateGridInfo();
+      updateCellControls();
+      renderEditor();
+      renderAlternativesPanel();
+    } else {
+      state.currentLetter = e.target.value;
+      state.selectedCell = null;
+      updateGridInfo();
+      updateCellControls();
+      renderEditor();
+      updateAlphabetActive(prev);
+    }
   });
   
   previewText.addEventListener('input', renderPreview);
@@ -1459,7 +1633,41 @@ function setupEventListeners() {
   btnNextLetter?.addEventListener('click', () => {
     navigateToLetter('next');
   });
-  
+
+  // Tabs del panel lateral
+  function switchPage(page) {
+    if (state.currentPage === page) return;
+    state.currentPage = page;
+    tabLetters?.classList.toggle('active', page === 'letters');
+    tabSymbols?.classList.toggle('active', page === 'symbols');
+    tabAlts?.classList.toggle('active', page === 'alts');
+
+    if (page === 'alts') {
+      const base = isAltKey(state.currentLetter) ? getAltBase(state.currentLetter) : state.currentLetter;
+      const allChars = [...ALPHABET, ...SYMBOLS];
+      state.altBaseLetter = allChars.includes(base) ? base : 'A';
+      state.currentLetter = state.altBaseLetter;
+    } else {
+      // Al salir de alts, volver a la letra base si estábamos en una alternativa
+      if (isAltKey(state.currentLetter)) {
+        state.currentLetter = getAltBase(state.currentLetter);
+      }
+      const chars = currentPageChars();
+      if (!chars.includes(state.currentLetter)) state.currentLetter = chars[0];
+    }
+
+    state.selectedCell = null;
+    populateLetterSelect();
+    updateGridInfo();
+    updateCellControls();
+    renderAlphabetGrid();
+    renderEditor();
+  }
+
+  tabLetters?.addEventListener('click', () => switchPage('letters'));
+  tabSymbols?.addEventListener('click', () => switchPage('symbols'));
+  tabAlts?.addEventListener('click', () => switchPage('alts'));
+
   // Atajos de teclado
   document.addEventListener('keydown', (e) => {
     // Ctrl+Z / Cmd+Z para deshacer
