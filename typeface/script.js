@@ -72,9 +72,11 @@ const state = {
   brushRotation: 0,
   isPainting: false,
   isErasing: false,
+  eraserMode: false,
   history: [], // Para Ctrl+Z
   historyIndex: -1,
-  maxHistory: 50
+  maxHistory: 50,
+  previewFontSize: 80
 };
 
 // Clasificación de letras por tipo
@@ -297,6 +299,17 @@ const toggleGuides = document.getElementById('toggleGuides');
 
 const toggleBrush = document.getElementById('toggleBrush');
 const brushControls = document.getElementById('brushControls');
+const btnEraser = document.getElementById('btnEraser');
+
+const previewOverlay = document.getElementById('previewOverlay');
+const btnOpenPreview = document.getElementById('btnOpenPreview');
+const btnClosePreview = document.getElementById('btnClosePreview');
+const previewOverlayCanvas = document.getElementById('previewOverlayCanvas');
+const previewOverlayText = document.getElementById('previewOverlayText');
+const fontSizeLabel = document.getElementById('fontSizeLabel');
+const btnFontSizeInc = document.getElementById('btnFontSizeInc');
+const btnFontSizeDec = document.getElementById('btnFontSizeDec');
+const previewEmptyHint = document.getElementById('previewEmptyHint');
 const brushColor = document.getElementById('brushColor');
 const brushShapePicker = document.getElementById('brushShapePicker');
 
@@ -384,6 +397,8 @@ function populateBrushShapeSelect() {
     btn.addEventListener('click', () => {
       state.brushShape = shapeId;
       state.brushRotation = 0;
+      state.eraserMode = false;
+      btnEraser?.classList.remove('active');
       brushShapePicker.querySelectorAll('.shape-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       renderEditor();
@@ -576,7 +591,7 @@ function renderEditor() {
   }
 
   // Preview del pincel
-  if (state.hoveredCell && state.brushMode && !state.isPainting) {
+  if (state.hoveredCell && state.brushMode && !state.eraserMode && !state.isPainting) {
     const { row, col } = state.hoveredCell;
     const x = col * cellSize;
     const y = row * cellSize;
@@ -586,6 +601,20 @@ function renderEditor() {
     if (shape) {
       shape.draw(ctx, x, y, cellSize, state.brushRotation, state.brushColor);
     }
+    ctx.restore();
+  }
+
+  // Preview de la goma
+  if (state.hoveredCell && state.eraserMode && !state.isPainting) {
+    const { row, col } = state.hoveredCell;
+    const x = col * cellSize;
+    const y = row * cellSize;
+    ctx.save();
+    ctx.fillStyle = 'rgba(255, 80, 80, 0.25)';
+    ctx.fillRect(x, y, cellSize, cellSize);
+    ctx.strokeStyle = 'rgba(255, 80, 80, 0.6)';
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(x + 1, y + 1, cellSize - 2, cellSize - 2);
     ctx.restore();
   }
 
@@ -644,6 +673,96 @@ function renderPreview() {
     
     currentX += letterWidth + spacing;
   });
+}
+
+// ========================================
+// OVERLAY DE PREVISUALIZACIÓN
+// ========================================
+
+function renderOverlayPreview() {
+  if (!previewOverlay.classList.contains('open')) return;
+
+  const canvas = previewOverlayCanvas;
+  const ctx = canvas.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  const raw = previewOverlayText.value.toUpperCase();
+  const text = raw || '';
+  const letterHeight = state.previewFontSize;
+  const spacing = Math.max(2, Math.round(letterHeight * 0.1));
+
+  // Mostrar/ocultar hint
+  if (previewEmptyHint) {
+    previewEmptyHint.style.display = text.length === 0 ? 'block' : 'none';
+  }
+
+  if (text.length === 0) {
+    canvas.style.display = 'none';
+    return;
+  }
+  canvas.style.display = 'block';
+
+  // Calcular ancho total
+  let totalWidth = 0;
+  text.split('').forEach(char => {
+    if (char === ' ') {
+      totalWidth += Math.round(letterHeight * 0.5);
+    } else if (state.letters[char]) {
+      const letter = state.letters[char];
+      const lw = (letterHeight / letter.rows) * letter.cols;
+      totalWidth += lw + spacing;
+    }
+  });
+  if (totalWidth > spacing) totalWidth -= spacing;
+
+  const pad = 0;
+  const physW = Math.max(totalWidth + pad * 2, 1);
+  const physH = letterHeight;
+
+  canvas.width = Math.round(physW * dpr);
+  canvas.height = Math.round(physH * dpr);
+  canvas.style.width = physW + 'px';
+  canvas.style.height = physH + 'px';
+
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, physW, physH);
+  ctx.lineCap = 'butt';
+  ctx.lineJoin = 'miter';
+
+  let currentX = pad;
+  text.split('').forEach(char => {
+    if (char === ' ') {
+      currentX += Math.round(letterHeight * 0.5);
+      return;
+    }
+    if (!state.letters[char]) return;
+    const letter = state.letters[char];
+    const cellSize = letterHeight / letter.rows;
+    const letterWidth = cellSize * letter.cols;
+
+    letter.grid.forEach((row, rowIndex) => {
+      row.forEach((cell, colIndex) => {
+        const shape = SHAPES[cell.shape];
+        if (shape && cell.shape !== 'empty') {
+          const x = currentX + colIndex * cellSize;
+          const y = rowIndex * cellSize;
+          shape.draw(ctx, x, y, cellSize, cell.rotation, cell.color);
+        }
+      });
+    });
+    currentX += letterWidth + spacing;
+  });
+}
+
+function openPreviewOverlay() {
+  previewOverlay.classList.add('open');
+  previewOverlay.removeAttribute('aria-hidden');
+  renderOverlayPreview();
+  previewOverlayText.focus();
+}
+
+function closePreviewOverlay() {
+  previewOverlay.classList.remove('open');
+  previewOverlay.setAttribute('aria-hidden', 'true');
 }
 
 function renderAlphabetGrid() {
@@ -1155,10 +1274,10 @@ function setupEventListeners() {
   editorCanvas.addEventListener('mousedown', (e) => {
     const cell = getCellFromEvent(e);
     if (!cell) return;
-    
+
     if (state.brushMode) {
       state.isPainting = true;
-      state.isErasing = e.shiftKey;
+      state.isErasing = state.eraserMode || e.shiftKey;
       paintCell(cell.row, cell.col);
     } else {
       state.selectedCell = cell;
@@ -1179,7 +1298,7 @@ function setupEventListeners() {
     if (cell) {
       state.hoveredCell = cell;
       if (state.brushMode && state.isPainting) {
-        state.isErasing = e.shiftKey;
+        state.isErasing = state.eraserMode || e.shiftKey;
         paintCell(cell.row, cell.col);
       } else {
         renderEditor();
@@ -1229,6 +1348,24 @@ function setupEventListeners() {
     if (state.brushMode) {
       state.selectedCell = null;
       updateCellControls();
+    } else {
+      state.eraserMode = false;
+      btnEraser?.classList.remove('active');
+      editorCanvas.classList.remove('eraser-cursor');
+    }
+    renderEditor();
+  });
+
+  // Goma de borrar
+  btnEraser?.addEventListener('click', () => {
+    state.eraserMode = !state.eraserMode;
+    btnEraser.classList.toggle('active', state.eraserMode);
+    editorCanvas.classList.toggle('eraser-cursor', state.eraserMode);
+    if (state.eraserMode) {
+      brushShapePicker.querySelectorAll('.shape-btn').forEach(b => b.classList.remove('active'));
+    } else {
+      const activeBtn = brushShapePicker.querySelector(`[data-shape="${state.brushShape}"]`);
+      activeBtn?.classList.add('active');
     }
     renderEditor();
   });
@@ -1248,12 +1385,22 @@ function setupEventListeners() {
   
   // Atajos de teclado
   document.addEventListener('keydown', (e) => {
-    // Ctrl+Z para deshacer
-    if (e.ctrlKey && e.key === 'z') {
+    // Ctrl+Z / Cmd+Z para deshacer
+    if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
       e.preventDefault();
       undo();
     }
-    
+
+    // E para activar/desactivar goma
+    if ((e.key === 'e' || e.key === 'E') && !e.ctrlKey && !e.metaKey && state.brushMode) {
+      if (btnEraser) btnEraser.click();
+    }
+
+    // Escape para cerrar el overlay de previsualización
+    if (e.key === 'Escape' && previewOverlay?.classList.contains('open')) {
+      closePreviewOverlay();
+    }
+
     // Flechas para navegar letras
     if (e.key === 'ArrowLeft') {
       navigateToLetter('prev');
@@ -1261,10 +1408,10 @@ function setupEventListeners() {
     if (e.key === 'ArrowRight') {
       navigateToLetter('next');
     }
-    
+
     // R para rotar
     if (e.key === 'r' || e.key === 'R') {
-      if (state.brushMode) {
+      if (state.brushMode && !state.eraserMode) {
         const shape = SHAPES[state.brushShape];
         if (shape) {
           state.brushRotation = (state.brushRotation + 1) % shape.rotations;
@@ -1467,6 +1614,29 @@ function setupEventListeners() {
     state.showGuides = e.target.checked;
     renderEditor();
   });
+
+  // ── Overlay de previsualización ──
+  btnOpenPreview?.addEventListener('click', openPreviewOverlay);
+  btnClosePreview?.addEventListener('click', closePreviewOverlay);
+
+  previewOverlayText?.addEventListener('input', renderOverlayPreview);
+
+  btnFontSizeInc?.addEventListener('click', () => {
+    if (state.previewFontSize < 400) {
+      state.previewFontSize = Math.min(400, state.previewFontSize + (state.previewFontSize < 100 ? 10 : 20));
+      fontSizeLabel.textContent = state.previewFontSize;
+      renderOverlayPreview();
+    }
+  });
+
+  btnFontSizeDec?.addEventListener('click', () => {
+    if (state.previewFontSize > 20) {
+      state.previewFontSize = Math.max(20, state.previewFontSize - (state.previewFontSize <= 100 ? 10 : 20));
+      fontSizeLabel.textContent = state.previewFontSize;
+      renderOverlayPreview();
+    }
+  });
+
 }
 
 init();

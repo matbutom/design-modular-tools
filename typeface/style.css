@@ -1757,3 +1757,157 @@ body.community-app {
   height: 100%;
   display: block;
 }
+
+/* Eraser button active state */
+#btnEraser.active {
+  background: #ff5050;
+  color: #fff;
+  border-color: #ff5050;
+}
+#btnEraser.active:hover {
+  background: #e04040;
+  border-color: #e04040;
+}
+
+/* Canvas cursor when eraser is active */
+.eraser-cursor {
+  cursor: cell;
+}
+
+/* ── Preview button in bottombar ── */
+.btn-preview-open {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  padding: 5px 10px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--fg);
+  cursor: pointer;
+  font-family: inherit;
+  border-radius: var(--radius);
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+.btn-preview-open:hover {
+  background: var(--hover-bg);
+  border-color: var(--border-hover);
+}
+
+/* ── Preview Overlay ── */
+.preview-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 900;
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+  transform: translateY(100%);
+  transition: transform 0.42s cubic-bezier(0.22, 1, 0.36, 1);
+  pointer-events: none;
+}
+.preview-overlay.open {
+  transform: translateY(0);
+  pointer-events: all;
+}
+
+.preview-overlay-topbar {
+  display: flex;
+  align-items: center;
+  height: 56px;
+  border-bottom: 1px solid var(--border);
+  padding: 0 20px;
+  gap: 16px;
+  flex-shrink: 0;
+}
+
+.preview-close {
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  cursor: pointer;
+  border-radius: var(--radius);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s;
+  flex-shrink: 0;
+}
+.preview-close:hover {
+  background: var(--hover-bg);
+}
+.preview-close svg {
+  display: block;
+}
+
+.preview-overlay-title {
+  font-size: 11px;
+  color: #aaa;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+}
+
+.preview-size-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  font-size: 12px;
+}
+.preview-size-controls #fontSizeLabel {
+  min-width: 28px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.preview-overlay-stage {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  padding: 32px 40px;
+  position: relative;
+}
+
+#previewOverlayCanvas {
+  max-width: 100%;
+  max-height: 100%;
+  display: block;
+}
+
+.preview-empty-hint {
+  position: absolute;
+  font-size: 13px;
+  color: #ccc;
+  pointer-events: none;
+  text-align: center;
+}
+
+.preview-overlay-input-row {
+  padding: 20px 40px 28px;
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.preview-overlay-input {
+  width: 100%;
+  font-family: inherit;
+  font-size: 22px;
+  border: none;
+  border-bottom: 2px solid var(--border);
+  outline: none;
+  background: transparent;
+  color: var(--fg);
+  padding: 8px 0;
+  letter-spacing: 0.2px;
+  transition: border-color 0.15s;
+}
+.preview-overlay-input:focus {
+  border-bottom-color: var(--fg);
+}
+.preview-overlay-input::placeholder {
+  color: #ddd;
+}

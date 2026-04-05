@@ -82,17 +82,22 @@
       <div id="brushControls" style="display: block;">
         <input type="color" id="brushColor" class="color-input" value="#000000">
         <div id="brushShapePicker" class="shape-picker"></div>
+        <button id="btnEraser" class="shape-btn" title="Goma de borrar (E)">
+          <svg viewBox="0 0 20 20" fill="currentColor"><path d="M3 16h5.5l7-7-5-5-8 8v4zm1.5-1v-2.5l6.5-6.5 2.5 2.5-6.5 6.5H4.5z" opacity=".5"/><path d="M8 16h9v1H3v-1h5zm.5-1L4 10.5l1-1L9.5 14H8.5z"/><path d="M5 15l7-7 3 3-4 4H5z"/></svg>
+        </button>
       </div>
     </div>
 
     <!-- Celda -->
     <div class="bar-group">
-      <span class="bar-label">Celda</span>
       <div id="cellControls" class="cell-controls" style="display: none;">
         <select id="shapeSelect" class="select select-sm"></select>
         <button id="btnRotate" class="btn">90°</button>
       </div>
-      <span id="noCellSelected" class="bar-hint">—</span>
+      <button id="btnOpenPreview" class="btn btn-preview-open">
+        <svg viewBox="0 0 16 16" fill="currentColor" width="12" height="12"><path d="M8 3C4.5 3 1.5 5.5 1 8c.5 2.5 3.5 5 7 5s6.5-2.5 7-5c-.5-2.5-3.5-5-7-5zm0 8a3 3 0 1 1 0-6 3 3 0 0 1 0 6zm0-5a2 2 0 1 0 0 4 2 2 0 0 0 0-4z"/></svg>
+        Previsualizar
+      </button>
     </div>
 
     <!-- Preview hidden (JS still references these) -->
@@ -110,6 +115,39 @@
   <!-- Context Menu -->
   <div id="contextMenu" class="context-menu" style="display: none;">
     <div class="context-menu-content"></div>
+  </div>
+
+  <!-- Preview Overlay -->
+  <div id="previewOverlay" class="preview-overlay" aria-hidden="true">
+    <div class="preview-overlay-topbar">
+      <button id="btnClosePreview" class="preview-close" title="Volver al editor">
+        <svg viewBox="0 0 16 16" fill="currentColor" width="14" height="14"><path d="M12.5 3.5l-9 9M3.5 3.5l9 9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      </button>
+      <span class="preview-overlay-title">Vista previa</span>
+      <div class="preview-size-controls">
+        <span class="bar-label">Tamaño</span>
+        <button id="btnFontSizeDec" class="btn-stepper">−</button>
+        <span id="fontSizeLabel">80</span>
+        <span class="bar-label">px</span>
+        <button id="btnFontSizeInc" class="btn-stepper">+</button>
+      </div>
+    </div>
+    <div class="preview-overlay-stage">
+      <canvas id="previewOverlayCanvas"></canvas>
+      <p class="preview-empty-hint" id="previewEmptyHint">Escribe algo abajo para ver tu tipografía</p>
+    </div>
+    <div class="preview-overlay-input-row">
+      <input
+        type="text"
+        id="previewOverlayText"
+        class="preview-overlay-input"
+        placeholder="Escribe algo aquí..."
+        value=""
+        maxlength="80"
+        autocomplete="off"
+        spellcheck="false"
+      >
+    </div>
   </div>
 
   <script src="script.js"></script>
