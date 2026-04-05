@@ -1622,24 +1622,63 @@ body.editor-app .alphabet-grid {
   min-height: 0;
 }
 
-/* Cards fill their grid cell (no aspect-ratio, that caused h-overflow) */
+/* Cards fill their grid cell — canvas covers the whole card */
 body.editor-app .letter-card {
   aspect-ratio: unset;
   min-height: 0;
-  padding: 2px;
+  padding: 0;
+  overflow: hidden;
+  position: relative;
 }
 
-/* Canvas inside card stays square, sized by card width */
+/* Canvas fills the full card */
 body.editor-app .letter-card canvas {
-  flex: none;
+  display: block;
   width: 100%;
-  height: auto;
-  aspect-ratio: 1;
+  height: 100%;
+  position: absolute;
+  inset: 0;
 }
 
-body.editor-app .letter-card-header {
-  font-size: 10px;
-  margin-bottom: 1px;
+/* Overlay: invisible by default, appears on hover */
+body.editor-app .letter-card-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  background: rgba(255, 255, 255, 0.82);
+  opacity: 0;
+  transition: opacity 0.12s ease;
+  pointer-events: none;
+}
+
+body.editor-app .letter-card:hover .letter-card-overlay {
+  opacity: 1;
+}
+
+body.editor-app .letter-card.active .letter-card-overlay {
+  opacity: 1;
+  background: rgba(0, 0, 0, 0.55);
+}
+
+body.editor-app .letter-card.active .letter-card-overlay .letter-name,
+body.editor-app .letter-card.active .letter-card-overlay .letter-status {
+  color: #fff;
+}
+
+body.editor-app .letter-card-overlay .letter-name {
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--fg);
+}
+
+body.editor-app .letter-card-overlay .letter-status {
+  font-size: 8px;
+  color: #888;
 }
 
 /* ========================================

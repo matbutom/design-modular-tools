@@ -884,44 +884,47 @@ function closePreviewOverlay() {
   previewOverlay.setAttribute('aria-hidden', 'true');
 }
 
+// Crea una card de letra/símbolo/alternativa con el nuevo diseño
+function createLetterCard(key, isActive, label, onClickFn) {
+  const letterData = state.letters[key];
+  const hasContent = letterData?.grid.some(row => row.some(cell => cell.shape !== 'empty'));
+
+  const card = document.createElement('div');
+  card.className = 'letter-card' + (isActive ? ' active' : '');
+  card.dataset.letter = key;
+
+  const canvas = document.createElement('canvas');
+  canvas.width = 120;
+  canvas.height = 120;
+  renderLetterThumbnail(canvas, key);
+
+  const overlay = document.createElement('div');
+  overlay.className = 'letter-card-overlay';
+
+  const name = document.createElement('span');
+  name.className = 'letter-name';
+  name.textContent = label;
+
+  const status = document.createElement('span');
+  status.className = 'letter-status';
+  status.textContent = hasContent ? '●' : '○';
+
+  overlay.appendChild(name);
+  overlay.appendChild(status);
+  card.appendChild(canvas);
+  card.appendChild(overlay);
+
+  card.addEventListener('click', onClickFn);
+  return card;
+}
+
 function renderAlphabetGrid() {
   if (state.currentPage === 'alts') { renderAlternativesPanel(); return; }
   alphabetGrid.innerHTML = '';
 
   currentPageChars().forEach(letter => {
-    const card = document.createElement('div');
-    card.className = 'letter-card';
-    card.dataset.letter = letter;
-    if (letter === state.currentLetter) card.classList.add('active');
-
-    const header = document.createElement('div');
-    header.className = 'letter-card-header';
-
-    const name = document.createElement('span');
-    name.className = 'letter-name';
-    name.textContent = letter;
-    if (state.currentPage === 'symbols') name.title = SYMBOL_NAMES[letter] || letter;
-
-    const status = document.createElement('span');
-    status.className = 'letter-status';
-    const letterData = state.letters[letter];
-    const hasContent = letterData.grid.some(row =>
-      row.some(cell => cell.shape !== 'empty')
-    );
-    status.textContent = hasContent ? '●' : '○';
-
-    header.appendChild(name);
-    header.appendChild(status);
-
-    const canvas = document.createElement('canvas');
-    canvas.width = 80;
-    canvas.height = 80;
-    renderLetterThumbnail(canvas, letter);
-
-    card.appendChild(header);
-    card.appendChild(canvas);
-
-    card.addEventListener('click', () => {
+    const displayLabel = state.currentPage === 'symbols' ? (SYMBOL_NAMES[letter] || letter) : letter;
+    const card = createLetterCard(letter, letter === state.currentLetter, displayLabel, () => {
       const prev = state.currentLetter;
       state.currentLetter = letter;
       state.selectedCell = null;
@@ -931,7 +934,6 @@ function renderAlphabetGrid() {
       renderEditor();
       updateAlphabetActive(prev);
     });
-
     alphabetGrid.appendChild(card);
   });
 
@@ -967,35 +969,7 @@ function renderAlternativesPanel() {
 }
 
 function appendAltCard(key, isActive, label) {
-  const card = document.createElement('div');
-  card.className = 'letter-card' + (isActive ? ' active' : '');
-  card.dataset.letter = key;
-
-  const header = document.createElement('div');
-  header.className = 'letter-card-header';
-
-  const name = document.createElement('span');
-  name.className = 'letter-name';
-  name.textContent = label;
-
-  const status = document.createElement('span');
-  status.className = 'letter-status';
-  const letterData = state.letters[key];
-  const hasContent = letterData?.grid.some(row => row.some(cell => cell.shape !== 'empty'));
-  status.textContent = hasContent ? '●' : '○';
-
-  header.appendChild(name);
-  header.appendChild(status);
-
-  const canvas = document.createElement('canvas');
-  canvas.width = 80;
-  canvas.height = 80;
-  renderLetterThumbnail(canvas, key);
-
-  card.appendChild(header);
-  card.appendChild(canvas);
-
-  card.addEventListener('click', () => {
+  const card = createLetterCard(key, isActive, label, () => {
     const prev = state.currentLetter;
     state.currentLetter = key;
     state.selectedCell = null;
@@ -1004,7 +978,6 @@ function appendAltCard(key, isActive, label) {
     renderEditor();
     updateAlphabetActive(prev);
   });
-
   alphabetGrid.appendChild(card);
 }
 
@@ -1106,12 +1079,13 @@ function renderLetterThumbnail(canvas, letter) {
   ctx.clearRect(0, 0, w, h);
   
   const letterData = state.letters[letter];
-  const cellSizeW = w / letterData.cols;
-  const cellSizeH = h / letterData.rows;
+  const pad = Math.round(w * 0.1);
+  const cellSizeW = (w - pad * 2) / letterData.cols;
+  const cellSizeH = (h - pad * 2) / letterData.rows;
   const cellSize = Math.min(cellSizeW, cellSizeH);
-  
-  const offsetX = (w - cellSize * letterData.cols) / 2;
-  const offsetY = (h - cellSize * letterData.rows) / 2;
+
+  const offsetX = pad + ((w - pad * 2) - cellSize * letterData.cols) / 2;
+  const offsetY = pad + ((h - pad * 2) - cellSize * letterData.rows) / 2;
   
   ctx.lineCap = 'butt';
   ctx.lineJoin = 'miter';
