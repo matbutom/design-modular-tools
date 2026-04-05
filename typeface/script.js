@@ -150,15 +150,17 @@ function saveToHistory() {
   } else {
     state.historyIndex++;
   }
+  saveToStorage();
 }
 
 function undo() {
   if (state.historyIndex > 0) {
     state.historyIndex--;
     state.letters = JSON.parse(JSON.stringify(state.history[state.historyIndex]));
+    saveToStorage();
     renderEditor();
     renderPreview();
-    renderAlphabetGrid();
+    ALPHABET.forEach(l => updateLetterThumbnail(l));
   }
 }
 
@@ -166,26 +168,70 @@ function undo() {
 saveToHistory();
 
 // ========================================
+// PERSISTENCIA (localStorage)
+// ========================================
+
+const STORAGE_KEY = 'modular-type-v1';
+let _saveTimer = null;
+
+function saveToStorage() {
+  clearTimeout(_saveTimer);
+  _saveTimer = setTimeout(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        letters: state.letters,
+        gridCols: state.gridCols,
+        gridRows: state.gridRows,
+        xHeight: state.xHeight,
+        ascender: state.ascender,
+        descender: state.descender,
+        proportionsEnabled: state.proportionsEnabled
+      }));
+    } catch(e) {}
+  }, 400);
+}
+
+function loadFromStorage() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return false;
+    const saved = JSON.parse(raw);
+    if (!saved || typeof saved !== 'object') return false;
+    if (saved.letters)                            state.letters = saved.letters;
+    if (typeof saved.gridCols === 'number')       state.gridCols = saved.gridCols;
+    if (typeof saved.gridRows === 'number')       state.gridRows = saved.gridRows;
+    if (typeof saved.xHeight === 'number')        state.xHeight = saved.xHeight;
+    if (typeof saved.ascender === 'number')       state.ascender = saved.ascender;
+    if (typeof saved.descender === 'number')      state.descender = saved.descender;
+    if (typeof saved.proportionsEnabled === 'boolean') state.proportionsEnabled = saved.proportionsEnabled;
+    return true;
+  } catch(e) {
+    return false;
+  }
+}
+
+// ========================================
 // NAVEGACIÓN DE LETRAS
 // ========================================
 
 function navigateToLetter(direction) {
   const currentIndex = ALPHABET.indexOf(state.currentLetter);
+  const prev = state.currentLetter;
   let newIndex;
-  
+
   if (direction === 'next') {
     newIndex = (currentIndex + 1) % ALPHABET.length;
   } else {
     newIndex = (currentIndex - 1 + ALPHABET.length) % ALPHABET.length;
   }
-  
+
   state.currentLetter = ALPHABET[newIndex];
   state.selectedCell = null;
   letterSelect.value = state.currentLetter;
   updateGridInfo();
   updateCellControls();
   renderEditor();
-  renderAlphabetGrid();
+  updateAlphabetActive(prev);
 }
 
 // ========================================
@@ -321,6 +367,14 @@ const btnNextLetter = document.getElementById('btnNextLetter');
 // ========================================
 
 function init() {
+  const restored = loadFromStorage();
+  if (restored) {
+    // Sync UI controls with restored state
+    if (toggleProportions) {
+      toggleProportions.checked = state.proportionsEnabled;
+      if (proportionsControls) proportionsControls.style.display = state.proportionsEnabled ? 'block' : 'none';
+    }
+  }
   setupCanvas();
   populateLetterSelect();
   populateShapeSelect();
@@ -767,54 +821,76 @@ function closePreviewOverlay() {
 
 function renderAlphabetGrid() {
   alphabetGrid.innerHTML = '';
-  
+
   ALPHABET.forEach(letter => {
     const card = document.createElement('div');
     card.className = 'letter-card';
-    if (letter === state.currentLetter) {
-      card.classList.add('active');
-    }
-    
+    card.dataset.letter = letter;
+    if (letter === state.currentLetter) card.classList.add('active');
+
     const header = document.createElement('div');
     header.className = 'letter-card-header';
-    
+
     const name = document.createElement('span');
     name.className = 'letter-name';
     name.textContent = letter;
-    
+
     const status = document.createElement('span');
     status.className = 'letter-status';
     const letterData = state.letters[letter];
-    const hasContent = letterData.grid.some(row => 
+    const hasContent = letterData.grid.some(row =>
       row.some(cell => cell.shape !== 'empty')
     );
     status.textContent = hasContent ? '●' : '○';
-    
+
     header.appendChild(name);
     header.appendChild(status);
-    
+
     const canvas = document.createElement('canvas');
     canvas.width = 80;
     canvas.height = 80;
     renderLetterThumbnail(canvas, letter);
-    
+
     card.appendChild(header);
     card.appendChild(canvas);
-    
+
     card.addEventListener('click', () => {
+      const prev = state.currentLetter;
       state.currentLetter = letter;
       state.selectedCell = null;
       letterSelect.value = letter;
       updateGridInfo();
       updateCellControls();
       renderEditor();
-      renderAlphabetGrid();
+      updateAlphabetActive(prev);
     });
-    
+
     alphabetGrid.appendChild(card);
   });
 
   updateAlphabetLayout();
+}
+
+// Actualiza solo el estado activo en el panel — sin reconstruir el DOM
+function updateAlphabetActive(prevLetter) {
+  if (prevLetter) {
+    alphabetGrid.querySelector(`[data-letter="${prevLetter}"]`)?.classList.remove('active');
+  }
+  alphabetGrid.querySelector(`[data-letter="${state.currentLetter}"]`)?.classList.add('active');
+}
+
+// Re-renderiza solo el thumbnail y el punto de estado de una letra concreta
+function updateLetterThumbnail(letter) {
+  const card = alphabetGrid.querySelector(`[data-letter="${letter}"]`);
+  if (!card) return;
+  const canvas = card.querySelector('canvas');
+  if (canvas) renderLetterThumbnail(canvas, letter);
+  const status = card.querySelector('.letter-status');
+  if (status) {
+    const letterData = state.letters[letter];
+    const hasContent = letterData.grid.some(row => row.some(cell => cell.shape !== 'empty'));
+    status.textContent = hasContent ? '●' : '○';
+  }
 }
 
 function updateAlphabetLayout() {
@@ -907,7 +983,7 @@ function paintCell(row, col) {
   }
   renderEditor();
   renderPreview();
-  renderAlphabetGrid();
+  updateLetterThumbnail(state.currentLetter);
 }
 
 // ========================================
@@ -1252,12 +1328,13 @@ function importJSON(e) {
 
 function setupEventListeners() {
   letterSelect.addEventListener('change', (e) => {
+    const prev = state.currentLetter;
     state.currentLetter = e.target.value;
     state.selectedCell = null;
     updateGridInfo();
     updateCellControls();
     renderEditor();
-    renderAlphabetGrid();
+    updateAlphabetActive(prev);
   });
   
   previewText.addEventListener('input', renderPreview);
@@ -1512,13 +1589,14 @@ function setupEventListeners() {
       state.proportionsEnabled = false;
       if (toggleProportions) toggleProportions.checked = false;
       if (proportionsControls) proportionsControls.style.display = 'none';
-      
+
       ALPHABET.forEach(letter => {
         state.letters[letter] = initLetter(letter);
       });
       state.selectedCell = null;
       state.history = [];
       state.historyIndex = -1;
+      try { localStorage.removeItem(STORAGE_KEY); } catch(e) {}
       saveToHistory();
       updateGridInfo();
       updateCellControls();
