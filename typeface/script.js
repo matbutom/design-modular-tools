@@ -216,7 +216,23 @@ function loadFromStorage() {
     const saved = JSON.parse(raw);
     if (!saved || typeof saved !== 'object') return false;
     if (saved.letters)                            Object.keys(saved.letters).forEach(k => { state.letters[k] = saved.letters[k]; });
-    if (saved.alternatives && typeof saved.alternatives === 'object') state.alternatives = saved.alternatives;
+    if (saved.alternatives && typeof saved.alternatives === 'object') {
+      state.alternatives = saved.alternatives;
+      // Ensure every alt key has a corresponding state.letters entry
+      Object.entries(state.alternatives).forEach(([base, alts]) => {
+        state.alternatives[base] = alts.filter(key => {
+          if (state.letters[key]) return true;
+          const baseLetter = state.letters[base];
+          if (!baseLetter) return false;
+          state.letters[key] = {
+            grid: baseLetter.grid.map(row => row.map(() => ({ shape: 'empty', rotation: 0, color: '#000000' }))),
+            cols: baseLetter.cols,
+            rows: baseLetter.rows
+          };
+          return true;
+        });
+      });
+    }
     if (typeof saved.gridCols === 'number')       state.gridCols = saved.gridCols;
     if (typeof saved.gridRows === 'number')       state.gridRows = saved.gridRows;
     if (typeof saved.xHeight === 'number')        state.xHeight = saved.xHeight;
@@ -1075,10 +1091,11 @@ function renderLetterThumbnail(canvas, letter) {
   const ctx = canvas.getContext('2d');
   const w = canvas.width;
   const h = canvas.height;
-  
+
   ctx.clearRect(0, 0, w, h);
-  
+
   const letterData = state.letters[letter];
+  if (!letterData) return;
   const pad = Math.round(w * 0.1);
   const cellSizeW = (w - pad * 2) / letterData.cols;
   const cellSizeH = (h - pad * 2) / letterData.rows;
