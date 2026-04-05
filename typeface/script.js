@@ -136,6 +136,30 @@ ALPHABET.forEach(letter => {
 });
 
 // ========================================
+// PERSISTENCIA (localStorage)
+// ========================================
+
+const STORAGE_KEY = 'modular-type-v1';
+let _saveTimer = null;
+
+function saveToStorage() {
+  clearTimeout(_saveTimer);
+  _saveTimer = setTimeout(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        letters: state.letters,
+        gridCols: state.gridCols,
+        gridRows: state.gridRows,
+        xHeight: state.xHeight,
+        ascender: state.ascender,
+        descender: state.descender,
+        proportionsEnabled: state.proportionsEnabled
+      }));
+    } catch(e) {}
+  }, 400);
+}
+
+// ========================================
 // HISTORIAL PARA CTRL+Z
 // ========================================
 
@@ -166,30 +190,6 @@ function undo() {
 
 // Inicializar historial
 saveToHistory();
-
-// ========================================
-// PERSISTENCIA (localStorage)
-// ========================================
-
-const STORAGE_KEY = 'modular-type-v1';
-let _saveTimer = null;
-
-function saveToStorage() {
-  clearTimeout(_saveTimer);
-  _saveTimer = setTimeout(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({
-        letters: state.letters,
-        gridCols: state.gridCols,
-        gridRows: state.gridRows,
-        xHeight: state.xHeight,
-        ascender: state.ascender,
-        descender: state.descender,
-        proportionsEnabled: state.proportionsEnabled
-      }));
-    } catch(e) {}
-  }, 400);
-}
 
 function loadFromStorage() {
   try {
