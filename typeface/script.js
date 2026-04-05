@@ -436,6 +436,8 @@ const previewEmptyHint = document.getElementById('previewEmptyHint');
 const brushColor = document.getElementById('brushColor');
 const brushShapePicker = document.getElementById('brushShapePicker');
 
+const btnApplyOne = document.getElementById('btnApplyOne');
+const btnApplyAll = document.getElementById('btnApplyAll');
 const btnPrevLetter = document.getElementById('btnPrevLetter');
 const btnNextLetter = document.getElementById('btnNextLetter');
 const tabLetters = document.getElementById('tabLetters');
@@ -566,14 +568,28 @@ function adjustAllLetterHeights() {
   });
 }
 
+function changeCurrentLetterGrid(newCols, newRows) {
+  state.gridCols = newCols;
+  if (!state.proportionsEnabled) state.gridRows = newRows;
+  const letter = state.currentLetter;
+  const rows = state.proportionsEnabled ? getLetterHeight(letter) : newRows;
+  resizeGrid(newCols, rows, letter);
+  updateGridInfo();
+  renderEditor();
+  updateLetterThumbnail(letter);
+  saveToHistory();
+}
+
 function changeGlobalGridCols(newCols) {
   state.gridCols = newCols;
-  
   ALPHABET.forEach(letter => {
     const letterData = state.letters[letter];
     resizeGrid(newCols, letterData.rows, letter);
   });
-  
+  SYMBOLS.forEach(sym => {
+    const letterData = state.letters[sym];
+    if (letterData) resizeGrid(newCols, letterData.rows, sym);
+  });
   updateGridInfo();
   renderEditor();
   renderPreview();
@@ -583,12 +599,13 @@ function changeGlobalGridCols(newCols) {
 
 function changeGlobalGridRows(newRows) {
   state.gridRows = newRows;
-  
   if (!state.proportionsEnabled) {
     ALPHABET.forEach(letter => {
       resizeGrid(state.gridCols, newRows, letter);
     });
-    
+    SYMBOLS.forEach(sym => {
+      if (state.letters[sym]) resizeGrid(state.gridCols, newRows, sym);
+    });
     updateGridInfo();
     renderEditor();
     renderPreview();
@@ -1697,42 +1714,41 @@ function setupEventListeners() {
     }
   });
   
-  // Controles de columnas
+  // Controles de columnas/filas — cambian solo la letra actual
   btnIncCols?.addEventListener('click', () => {
-    if (state.gridCols < 8) {
-      changeGlobalGridCols(state.gridCols + 1);
-    }
+    if (state.gridCols < 24) changeCurrentLetterGrid(state.gridCols + 1, state.gridRows);
   });
-  
   btnDecCols?.addEventListener('click', () => {
-    if (state.gridCols > 2) {
-      changeGlobalGridCols(state.gridCols - 1);
+    if (state.gridCols > 1) {
+      changeCurrentLetterGrid(state.gridCols - 1, state.gridRows);
       if (state.selectedCell && state.selectedCell.col >= state.gridCols) {
         state.selectedCell = null;
         updateCellControls();
       }
     }
   });
-  
-  // Controles de filas
   btnIncRows?.addEventListener('click', () => {
     if (state.proportionsEnabled) return;
-    
-    if (state.gridRows < 8) {
-      changeGlobalGridRows(state.gridRows + 1);
-    }
+    if (state.gridRows < 24) changeCurrentLetterGrid(state.gridCols, state.gridRows + 1);
   });
-  
   btnDecRows?.addEventListener('click', () => {
     if (state.proportionsEnabled) return;
-    
-    if (state.gridRows > 2) {
-      changeGlobalGridRows(state.gridRows - 1);
+    if (state.gridRows > 1) {
+      changeCurrentLetterGrid(state.gridCols, state.gridRows - 1);
       if (state.selectedCell && state.selectedCell.row >= state.gridRows) {
         state.selectedCell = null;
         updateCellControls();
       }
     }
+  });
+
+  // Aplicar tamaño actual a esta letra o a todas
+  btnApplyOne?.addEventListener('click', () => {
+    changeCurrentLetterGrid(state.gridCols, state.gridRows);
+  });
+  btnApplyAll?.addEventListener('click', () => {
+    changeGlobalGridCols(state.gridCols);
+    changeGlobalGridRows(state.gridRows);
   });
   
   shapeSelect?.addEventListener('change', (e) => {
