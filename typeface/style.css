@@ -18,10 +18,10 @@
 }
 
 body {
-  font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Courier New', monospace;
+  font-family: 'Wix Madefor Display', sans-serif;
   background: var(--bg);
   color: var(--fg);
-  font-size: 13px;
+  font-size: 15px;
   line-height: 1.5;
 }
 
@@ -53,13 +53,13 @@ body {
 
 /* Buttons */
 .btn {
-  padding: 8px 16px;
+  padding: 9px 18px;
   border: 1px solid var(--border);
   background: var(--bg);
   color: var(--fg);
   cursor: pointer;
   font-family: inherit;
-  font-size: 12px;
+  font-size: 13px;
   border-radius: var(--radius);
   transition: all 0.15s ease;
 }
@@ -78,15 +78,15 @@ body {
 }
 
 .btn-xs {
-  font-size: 10px;
-  padding: 3px 7px;
-  height: 24px;
+  font-size: 12px;
+  padding: 4px 9px;
+  height: 28px;
 }
 
 .grid-apply-btns {
   display: flex;
-  flex-direction: column;
-  gap: 3px;
+  flex-direction: row;
+  gap: 4px;
 }
 
 .btn-block {
@@ -124,13 +124,13 @@ body {
 }
 
 .btn-stepper {
-  width: 28px;
-  height: 28px;
+  width: 32px;
+  height: 32px;
   border: none;
   background: var(--panel-bg);
   color: var(--fg);
   cursor: pointer;
-  font-size: 16px;
+  font-size: 18px;
   border-radius: 3px;
   display: flex;
   align-items: center;
@@ -148,9 +148,9 @@ body {
 }
 
 .stepper span {
-  min-width: 20px;
+  min-width: 24px;
   text-align: center;
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 500;
 }
 
@@ -164,8 +164,8 @@ body {
 .toggle-switch {
   position: relative;
   display: inline-block;
-  width: 40px;
-  height: 20px;
+  width: 46px;
+  height: 24px;
 }
 
 .toggle-switch input {
@@ -190,8 +190,8 @@ body {
 .toggle-slider:before {
   position: absolute;
   content: "";
-  height: 14px;
-  width: 14px;
+  height: 18px;
+  width: 18px;
   left: 2px;
   bottom: 2px;
   background-color: var(--fg);
@@ -205,7 +205,7 @@ body {
 }
 
 .toggle-switch input:checked + .toggle-slider:before {
-  transform: translateX(20px);
+  transform: translateX(22px);
 }
 
 /* Main Layout */
@@ -286,9 +286,10 @@ body {
 }
 
 .current-letter {
-  font-size: 36px;
+  font-size: 42px;
   font-weight: 500;
   letter-spacing: -2px;
+  line-height: 1;
 }
 
 .grid-info {
@@ -296,6 +297,8 @@ body {
   color: #999;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  writing-mode: vertical-lr;
+  transform: rotate(180deg);
 }
 
 .canvas-container {
@@ -581,7 +584,7 @@ body {
   padding: 8px 16px;
   text-decoration: none;
   color: #666;
-  font-size: 12px;
+  font-size: 13px;
   border-radius: var(--radius);
   transition: all 0.15s ease;
 }
@@ -1291,15 +1294,15 @@ body.editor-app {
 .topbar {
   display: flex;
   align-items: center;
-  height: 40px;
-  padding: 0 20px;
+  height: 50px;
+  padding: 0 24px;
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
   gap: 20px;
 }
 
 .topbar-title {
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 500;
   color: #999;
   text-transform: uppercase;
@@ -1314,8 +1317,8 @@ body.editor-app {
 }
 
 .topbar-nav .nav-link {
-  padding: 5px 12px;
-  font-size: 11px;
+  padding: 6px 14px;
+  font-size: 13px;
 }
 
 /* ── Main area: editor + alphabet ── */
@@ -1329,27 +1332,30 @@ body.editor-app {
 body.editor-app .editor {
   flex: 1;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
   padding: 20px;
   min-height: 0;
-  gap: 0;
+  position: relative;
   background: var(--bg);
 }
 
 body.editor-app .editor-header {
+  position: absolute;
+  left: 20px;
+  top: 50%;
+  transform: translateY(-50%);
   display: flex;
-  align-items: baseline;
-  gap: 10px;
-  margin-bottom: 10px;
-  flex-shrink: 0;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 14px;
+  pointer-events: none;
 }
 
 body.editor-app .canvas-container {
-  /* Aspect-ratio is set dynamically by JS to match the grid cols/rows */
-  width: min(calc(100vh - 180px), calc(100% - 16px));
+  /* Aspect-ratio and maxWidth are set dynamically by JS to match the grid cols/rows */
   height: auto;
+  max-height: calc(100vh - 180px);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: var(--bg);
@@ -1384,8 +1390,8 @@ body.editor-app .alphabet-tabs {
 
 body.editor-app .alphabet-tab {
   flex: 1;
-  padding: 7px 0;
-  font-size: 10px;
+  padding: 10px 0;
+  font-size: 12px;
   font-family: inherit;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -1443,7 +1449,7 @@ body.editor-app .editor-actions {
 .bottombar {
   display: flex;
   align-items: center;
-  height: 56px;
+  height: 62px;
   border-top: 1px solid var(--border);
   flex-shrink: 0;
   background: var(--bg);
@@ -1453,28 +1459,32 @@ body.editor-app .editor-actions {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
-  padding: 0 16px;
+  gap: 6px;
+  padding: 0 10px;
   height: 100%;
   border-right: 1px solid var(--border);
   flex: 1;
+  min-width: 0;
+}
+
+.bar-sep {
+  font-size: 11px;
+  color: #ccc;
 }
 
 .bar-group-preview {
-  flex: 1;
-  min-width: 140px;
-  max-width: 300px;
+  flex: none;
 }
 
 .bar-actions {
   border-right: none;
   flex: none;
-  gap: 8px;
-  padding: 0 20px;
+  gap: 6px;
+  padding: 0 12px;
 }
 
 .bar-label {
-  font-size: 10px;
+  font-size: 11px;
   color: #bbb;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -1488,7 +1498,7 @@ body.editor-app .editor-actions {
 }
 
 .bar-sub {
-  font-size: 10px;
+  font-size: 12px;
   color: #999;
   white-space: nowrap;
 }
@@ -1496,7 +1506,7 @@ body.editor-app .editor-actions {
 /* Compact steppers inside bottom bar */
 .bottombar .stepper {
   padding: 2px 4px;
-  gap: 4px;
+  gap: 2px;
 }
 
 .bottombar .btn-stepper {
@@ -1514,19 +1524,19 @@ body.editor-app .editor-actions {
 .bottombar .letter-nav {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 3px;
   margin-bottom: 0;
 }
 
 .bottombar .btn-arrow {
   width: 26px;
   height: 26px;
-  font-size: 12px;
+  font-size: 13px;
 }
 
 .bottombar .select-letter {
   height: 26px;
-  width: 60px;
+  width: 52px;
   padding: 2px 4px;
   font-size: 12px;
   margin-bottom: 0;
@@ -1535,7 +1545,7 @@ body.editor-app .editor-actions {
 /* Buttons in bottom bar */
 .bottombar .btn {
   padding: 5px 10px;
-  font-size: 11px;
+  font-size: 12px;
 }
 
 /* Compact select for brush/cell */
@@ -1550,15 +1560,15 @@ body.editor-app .editor-actions {
 
 /* Color input in bottom bar */
 .bottombar .color-input {
-  width: 26px;
-  height: 26px;
+  width: 34px;
+  height: 34px;
 }
 
 /* brushControls: show as flex row when visible */
 .bottombar #brushControls:not([style*="none"]) {
   display: flex !important;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
 }
 .bottombar #brushControls {
   margin-top: 0 !important;
@@ -1774,7 +1784,7 @@ body.community-app {
 .font-entry-meta {
   font-size: 11px;
   color: #999;
-  font-family: 'SF Mono', 'Monaco', monospace;
+  font-family: 'Wix Madefor Display', sans-serif;
 }
 
 .font-entry-download {
@@ -1836,9 +1846,9 @@ body.community-app {
 }
 
 .shape-btn {
-  width: 28px;
-  height: 28px;
-  padding: 4px;
+  width: 34px;
+  height: 34px;
+  padding: 6px;
   border: 1px solid var(--border);
   background: var(--bg);
   color: var(--fg);
@@ -2020,4 +2030,291 @@ body.community-app {
 }
 .preview-overlay-input::placeholder {
   color: #ddd;
+}
+
+/* ── Nav button (topbar) ── */
+.nav-btn {
+  background: none;
+  border: 1px solid transparent;
+  cursor: pointer;
+  font-family: inherit;
+  color: var(--fg);
+  border-radius: var(--radius);
+  transition: all 0.15s;
+}
+.nav-btn:hover {
+  background: var(--hover-bg);
+  border-color: var(--border);
+}
+
+/* ── Editor header actions (badge + nuevo) ── */
+/* ── Left sidebar ── */
+.editor-left-bar {
+  width: 180px;
+  flex-shrink: 0;
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 18px 14px;
+  gap: 10px;
+}
+
+.typeface-name-badge {
+  font-size: 12px;
+  color: #888;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 152px;
+  display: none;
+}
+
+.btn-new-typeface-full {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 12px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--fg);
+  font-family: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  border-radius: var(--radius);
+  transition: all 0.15s;
+  width: 100%;
+}
+.btn-new-typeface-full:hover {
+  background: var(--hover-bg);
+  border-color: var(--border-hover);
+}
+.btn-new-plus {
+  font-size: 18px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+/* ── Guardar tipografía btn ── */
+.btn-save-typeface {
+  background: var(--fg);
+  color: var(--bg);
+  border-color: var(--fg);
+}
+.btn-save-typeface:hover {
+  background: #333;
+  border-color: #333;
+}
+
+.btn-publish {
+  background: var(--fg);
+  color: var(--bg);
+  border-color: var(--fg);
+}
+.btn-publish:hover {
+  background: #333;
+  border-color: #333;
+}
+
+.publish-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.publish-error {
+  font-size: 10px;
+  color: #c0392b;
+  max-width: 220px;
+  line-height: 1.3;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  pointer-events: none;
+}
+.publish-error.visible {
+  opacity: 1;
+}
+
+/* ── Mis tipografías panel (side drawer) ── */
+.mytf-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.25);
+  z-index: 200;
+}
+.mytf-backdrop.open {
+  display: block;
+}
+
+.mytf-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  height: 100%;
+  width: 380px;
+  max-width: 95vw;
+  background: var(--bg);
+  border-left: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  z-index: 201;
+  transform: translateX(100%);
+  transition: transform 0.25s ease;
+}
+.mytf-panel.open {
+  transform: translateX(0);
+}
+
+.mytf-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  height: 44px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.mytf-title {
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #666;
+}
+
+.mytf-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--fg);
+  padding: 4px;
+  border-radius: var(--radius);
+  display: flex;
+  align-items: center;
+}
+.mytf-close:hover {
+  background: var(--hover-bg);
+}
+
+.mytf-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+}
+
+.mytf-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 100%;
+  color: #aaa;
+  font-size: 12px;
+  text-align: center;
+  padding: 40px 20px;
+}
+
+.mytf-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+
+.mytf-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.mytf-card-canvas {
+  width: 100%;
+  height: 96px;
+  display: block;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+}
+
+.mytf-card-info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  gap: 8px;
+  background: var(--panel-bg);
+}
+
+.mytf-card-name {
+  font-size: 12px;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+}
+
+.mytf-card-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+/* ── Save dialog ── */
+.savetf-dialog {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.35);
+  z-index: 300;
+  align-items: center;
+  justify-content: center;
+}
+.savetf-dialog.open {
+  display: flex;
+}
+
+.savetf-box {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 24px 28px;
+  width: 320px;
+  max-width: 90vw;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.savetf-label {
+  font-size: 12px;
+  color: #666;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.savetf-input {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-family: inherit;
+  font-size: 14px;
+  background: var(--bg);
+  color: var(--fg);
+  outline: none;
+}
+.savetf-input:focus {
+  border-color: var(--border-active);
+}
+
+.savetf-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
 }

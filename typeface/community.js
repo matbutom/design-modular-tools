@@ -108,7 +108,8 @@ function createFontEntry(font, familyName) {
 }
 
 async function loadCommunityFonts() {
-  const fonts = getFonts();
+  // Only show typefaces made with this tool
+  const fonts = getFonts().filter(f => f.toolMade === true);
   const fontList = document.getElementById('fontList');
   const emptyState = document.getElementById('emptyState');
 
@@ -150,53 +151,6 @@ function downloadFontOTF(fontId) {
   URL.revokeObjectURL(url);
 }
 
-// ========================================
-// MODAL DE SUBIDA
-// ========================================
-
-const uploadModal = document.getElementById('uploadModal');
-
-function openModal() {
-  uploadModal.style.display = 'flex';
-}
-
-function closeModal() {
-  uploadModal.style.display = 'none';
-  document.getElementById('uploadName').value = '';
-  document.getElementById('uploadAuthor').value = '';
-  document.getElementById('uploadFile').value = '';
-}
-
-document.getElementById('btnUpload').addEventListener('click', openModal);
-document.getElementById('closeModal').addEventListener('click', closeModal);
-document.getElementById('btnCancel').addEventListener('click', closeModal);
-document.getElementById('modalOverlay').addEventListener('click', closeModal);
-
-document.getElementById('btnConfirm').addEventListener('click', () => {
-  const name = document.getElementById('uploadName').value.trim();
-  const author = document.getElementById('uploadAuthor').value.trim() || 'Anónimo';
-  const file = document.getElementById('uploadFile').files[0];
-
-  if (!name) { alert('Por favor ingresa un nombre para la tipografía.'); return; }
-  if (!file)  { alert('Por favor selecciona un archivo OTF.'); return; }
-
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    const base64 = arrayBufferToBase64(e.target.result);
-    const fonts = getFonts();
-    fonts.unshift({
-      id: Date.now(),
-      name,
-      author,
-      otfData: base64,
-      createdAt: new Date().toISOString()
-    });
-    saveFonts(fonts);
-    closeModal();
-    loadCommunityFonts();
-  };
-  reader.readAsArrayBuffer(file);
-});
 
 // ========================================
 // INIT

@@ -4,6 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Creaciones - Editor Tipográfico</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Wix+Madefor+Display:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
 <body class="community-app">
@@ -18,7 +21,7 @@
     </div>
   </nav>
 
-  <!-- Sticky controls: sample text + upload -->
+  <!-- Sticky controls: sample text -->
   <div class="community-controls">
     <input
       type="text"
@@ -27,7 +30,6 @@
       value="El veloz murciélago hindú comía feliz cardillo y kiwi"
       placeholder="Escribe aquí para previsualizar todas las fuentes…"
     >
-    <button id="btnUpload" class="btn btn-primary">+ Subir tipografía</button>
   </div>
 
   <!-- Font list -->
@@ -36,39 +38,9 @@
   <!-- Empty state -->
   <div id="emptyState" class="community-empty" style="display:none;">
     <p class="community-empty-icon">◻</p>
-    <p class="community-empty-title">Aún no hay tipografías compartidas</p>
-    <p class="community-empty-sub">¡Sé el primero en subir tu creación!</p>
+    <p class="community-empty-title">Aún no hay tipografías publicadas</p>
+    <p class="community-empty-sub">Diseña una tipografía en el editor y presiona <strong>Publicar</strong>.</p>
     <a href="index.html" class="btn btn-primary">Ir al editor</a>
-  </div>
-
-  <!-- Upload modal -->
-  <div id="uploadModal" class="modal" style="display:none;">
-    <div class="modal-overlay" id="modalOverlay"></div>
-    <div class="modal-content">
-      <div class="modal-header">
-        <h2>Subir tipografía</h2>
-        <button class="modal-close" id="closeModal">×</button>
-      </div>
-      <div class="modal-body">
-        <div class="form-group">
-          <label>Nombre *</label>
-          <input type="text" id="uploadName" class="input" placeholder="Ej: Modular Sans">
-        </div>
-        <div class="form-group">
-          <label>Autor</label>
-          <input type="text" id="uploadAuthor" class="input" placeholder="Anónimo">
-        </div>
-        <div class="form-group">
-          <label>Archivo OTF *</label>
-          <input type="file" id="uploadFile" class="input" accept=".otf,.ttf">
-          <div class="hint">Exporta tu tipografía desde el editor con el botón OTF</div>
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button id="btnCancel" class="btn btn-secondary">Cancelar</button>
-        <button id="btnConfirm" class="btn btn-primary">Subir</button>
-      </div>
-    </div>
   </div>
 
   <script src="community.js"></script>

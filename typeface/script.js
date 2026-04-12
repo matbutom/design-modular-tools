@@ -472,6 +472,12 @@ function init() {
   if (alphabetContent && typeof ResizeObserver !== 'undefined') {
     new ResizeObserver(() => updateAlphabetLayout()).observe(alphabetContent);
   }
+
+  // Recompute canvas size when the editor area changes (e.g. window resize)
+  const editorSection = document.querySelector('body.editor-app .editor');
+  if (editorSection && typeof ResizeObserver !== 'undefined') {
+    new ResizeObserver(() => { setupCanvas(); renderEditor(); }).observe(editorSection);
+  }
 }
 
 function setupCanvas() {
@@ -485,8 +491,14 @@ function setupCanvas() {
   editorCanvas.width = physW * dpr;
   editorCanvas.height = physH * dpr;
   editorCtx.scale(dpr, dpr);
-  const maxH = window.innerHeight - 160;
-  editorCanvas.parentElement.style.maxWidth = Math.floor(Math.min(window.innerHeight - 180, maxH * ratio)) + 'px';
+  // Size the canvas to fit within both the available height and width
+  const editorSection = editorCanvas.parentElement.closest('.editor') || editorCanvas.parentElement.parentElement;
+  const availH = editorSection.clientHeight || (window.innerHeight - 160);
+  const availW = editorSection.clientWidth || (window.innerWidth - 300);
+  const maxByH = (availH - 40) * ratio;
+  const maxByW = availW - 80;
+  editorCanvas.parentElement.style.width = Math.floor(Math.min(maxByH, maxByW)) + 'px';
+  editorCanvas.parentElement.style.maxWidth = '';
   editorCanvas.parentElement.style.aspectRatio = `${cols} / ${rows}`;
   previewCanvas.width = 800 * dpr;
   previewCanvas.height = 120 * dpr;
@@ -1314,32 +1326,27 @@ function getCellFromEvent(e) {
 // EXPORTAR FUENTE OTF
 // ========================================
 
-function exportFont() {
+function buildOTFGlyphs(fontName) {
+  // Returns { font, error } — shared by publish and any future direct export
   if (typeof opentype === 'undefined') {
-    alert('La librería opentype.js no se cargó correctamente.');
-    return;
+    return { error: 'La librería opentype.js no se cargó correctamente.' };
   }
 
   const UPM = 1000;
-  const K = 0.5522847498; // cubic bezier circle approximation constant
+  const K = 0.5522847498;
 
-  // Determine cell size from the tallest letter
-  const maxRows = Math.max(...ALPHABET.map(l => state.letters[l]?.rows ?? 1));
+  const allChars = [...ALPHABET, ...SYMBOLS];
+  const maxRows = Math.max(...allChars.map(ch => state.letters[ch]?.rows ?? 1));
   const cellSize = Math.floor(UPM / maxRows);
-  const margin = Math.round(cellSize * 0.3); // side + vertical padding (~30% of a cell)
+  const margin = Math.round(cellSize * 0.3);
 
-  // Build opentype Path commands for a single cell in font Y-up coordinates.
-  // cx = left edge, cy = bottom edge (font Y-up), s = cellSize.
-  // margin shifts glyphs away from the advance-width edges on all four sides.
   function cellCommands(cell, col, row, totalRows) {
     if (cell.shape === 'empty') return [];
-
     const s = cellSize;
     const ks = K * s;
-    const cx = col * s + margin;                    // left side bearing
-    const cy = (totalRows - 1 - row) * s + margin; // bottom padding (Y-up)
+    const cx = col * s + margin;
+    const cy = (totalRows - 1 - row) * s + margin;
 
-    // All outer contours are CCW in Y-up (verified with shoelace formula).
     if (cell.shape === 'square') {
       return [
         { type: 'M', x: cx,   y: cy   },
@@ -1349,7 +1356,6 @@ function exportFont() {
         { type: 'Z' }
       ];
     }
-
     if (cell.shape === 'circle') {
       const ox = cx + s/2, oy = cy + s/2, r = s/2, kr = K * r;
       return [
@@ -1361,91 +1367,70 @@ function exportFont() {
         { type: 'Z' }
       ];
     }
-
     if (cell.shape === 'quarter') {
-      // Canvas rotation → font CCW path mapping (Y-axis flip changes centre corner):
-      //  canvas R0 (centre top-left)   → font centre at (cx, cy+s)
-      //  canvas R1 (centre top-right)  → font centre at (cx+s, cy+s)
-      //  canvas R2 (centre bot-right)  → font centre at (cx+s, cy)
-      //  canvas R3 (centre bot-left)   → font centre at (cx, cy)
       switch (cell.rotation) {
-        case 0: // centre top-left (cx, cy+s)
+        case 0:
           return [
             { type: 'M', x: cx,   y: cy+s },
             { type: 'L', x: cx,   y: cy   },
             { type: 'C', x1: cx+ks, y1: cy,    x2: cx+s, y2: cy+s-ks, x: cx+s, y: cy+s },
             { type: 'Z' }
           ];
-        case 1: // centre top-right (cx+s, cy+s)
+        case 1:
           return [
             { type: 'M', x: cx+s, y: cy+s },
             { type: 'L', x: cx,   y: cy+s },
             { type: 'C', x1: cx,   y1: cy+s-ks, x2: cx+s-ks, y2: cy, x: cx+s, y: cy },
             { type: 'Z' }
           ];
-        case 2: // centre bottom-right (cx+s, cy)
+        case 2:
           return [
             { type: 'M', x: cx+s, y: cy   },
             { type: 'L', x: cx+s, y: cy+s },
             { type: 'C', x1: cx+s-ks, y1: cy+s, x2: cx, y2: cy+ks, x: cx, y: cy },
             { type: 'Z' }
           ];
-        case 3: // centre bottom-left (cx, cy)
+        case 3:
           return [
             { type: 'M', x: cx,   y: cy   },
             { type: 'L', x: cx+s, y: cy   },
             { type: 'C', x1: cx+s, y1: cy+ks, x2: cx+ks, y2: cy+s, x: cx, y: cy+s },
             { type: 'Z' }
           ];
-        default:
-          return [];
+        default: return [];
       }
     }
-
     return [];
   }
 
-  // .notdef (required by spec)
   const notdefGlyph = new opentype.Glyph({
-    name: '.notdef',
-    unicode: undefined,
-    advanceWidth: cellSize * 4,
-    path: new opentype.Path()
+    name: '.notdef', unicode: undefined,
+    advanceWidth: cellSize * 4, path: new opentype.Path()
   });
-
-  // space
   const spaceGlyph = new opentype.Glyph({
-    name: 'space',
-    unicode: 32,
-    advanceWidth: cellSize * 2,
-    path: new opentype.Path()
+    name: 'space', unicode: 32,
+    advanceWidth: cellSize * 2, path: new opentype.Path()
   });
 
   const glyphs = [notdefGlyph, spaceGlyph];
 
-  for (const letter of ALPHABET) {
-    const letterData = state.letters[letter];
+  for (const ch of allChars) {
+    const letterData = state.letters[ch];
     if (!letterData) continue;
-
     const { grid, cols, rows } = letterData;
     const path = new opentype.Path();
-
     for (let r = 0; r < rows; r++) {
       for (let c = 0; c < cols; c++) {
-        const cmds = cellCommands(grid[r][c], c, r, rows);
-        path.commands.push(...cmds);
+        path.commands.push(...cellCommands(grid[r][c], c, r, rows));
       }
     }
-
     glyphs.push(new opentype.Glyph({
-      name: letter,
-      unicode: letter.codePointAt(0),
+      name: ch === ' ' ? 'space2' : `glyph_${ch.codePointAt(0)}`,
+      unicode: ch.codePointAt(0),
       advanceWidth: cols * cellSize + 2 * margin,
       path
     }));
   }
-
-  const fontName = prompt('Nombre de la fuente:', 'Modular Type') || 'Modular Type';
 
   const font = new opentype.Font({
     familyName: fontName,
@@ -1456,7 +1441,91 @@ function exportFont() {
     glyphs
   });
 
-  font.download(fontName.replace(/\s+/g, '-').toLowerCase() + '.otf');
+  return { font };
+}
+
+function _bufferToBase64(buffer) {
+  const bytes = new Uint8Array(buffer);
+  let binary = '';
+  for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
+  return btoa(binary);
+}
+
+function isLetterEmpty(ch) {
+  const ld = state.letters[ch];
+  if (!ld) return true;
+  return ld.grid.every(row => row.every(cell => !cell || cell.shape === 'empty'));
+}
+
+function showPublishError(msg) {
+  const el = document.getElementById('publishError');
+  if (!el) return;
+  el.textContent = msg;
+  el.classList.toggle('visible', !!msg);
+  if (msg) {
+    clearTimeout(el._hideTimer);
+    el._hideTimer = setTimeout(() => {
+      el.classList.remove('visible');
+      el.textContent = '';
+    }, 5000);
+  }
+}
+
+function publishFont() {
+  // Validate: all A-Z letters must have at least one drawn cell
+  const missing = ALPHABET.filter(ch => /[A-Z]/.test(ch) && isLetterEmpty(ch));
+  if (missing.length > 0) {
+    showPublishError(`Faltan letras por completar: ${missing.join(' ')}`);
+    return;
+  }
+  showPublishError('');
+
+  const fontName = state.currentTypefaceName
+    || prompt('Nombre de la tipografía:', 'Modular Type')
+    || 'Modular Type';
+
+  const { font, error } = buildOTFGlyphs(fontName);
+  if (error) { alert(error); return; }
+
+  let arrayBuffer;
+  try {
+    arrayBuffer = font.arrayBuffer();
+  } catch(e) {
+    alert('Error al generar el archivo OTF: ' + e.message);
+    return;
+  }
+
+  const base64 = _bufferToBase64(arrayBuffer);
+  const COMMUNITY_KEY = 'communityFontsV2';
+  let fonts = [];
+  try { fonts = JSON.parse(localStorage.getItem(COMMUNITY_KEY) || '[]'); } catch(e) {}
+
+  // Update existing entry if same name from this tool, otherwise add new
+  const existing = fonts.findIndex(f => f.toolMade && f.name === fontName);
+  const entry = {
+    id: existing >= 0 ? fonts[existing].id : Date.now(),
+    name: fontName,
+    otfData: base64,
+    toolMade: true,
+    createdAt: existing >= 0 ? fonts[existing].createdAt : new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  };
+
+  if (existing >= 0) {
+    fonts[existing] = entry;
+  } else {
+    fonts.unshift(entry);
+  }
+
+  try {
+    localStorage.setItem(COMMUNITY_KEY, JSON.stringify(fonts));
+  } catch(e) {
+    alert('No hay espacio suficiente. Intenta eliminar algunas tipografías de Creaciones.');
+    return;
+  }
+
+  const action = confirm(`"${fontName}" publicada en Creaciones.\n\n¿Ir a verla?`);
+  if (action) window.location.href = 'community.html';
 }
 
 // ========================================
@@ -1823,7 +1892,7 @@ function setupEventListeners() {
   
   document.getElementById('btnExport')?.addEventListener('click', exportJSON);
   document.getElementById('btnExportImage')?.addEventListener('click', exportImage);
-  document.getElementById('btnExportFont')?.addEventListener('click', exportFont);
+  document.getElementById('btnExportFont')?.addEventListener('click', publishFont);
   document.getElementById('fileImport')?.addEventListener('change', importJSON);
   
   alphabetToggle?.addEventListener('click', () => {
@@ -1931,5 +2000,299 @@ function setupEventListeners() {
   });
 
 }
+
+// ========================================
+// MIS TIPOGRAFÍAS
+// ========================================
+
+const TYPEFACES_KEY = 'modular-typefaces-v1';
+
+function loadTypefaces() {
+  try {
+    const raw = localStorage.getItem(TYPEFACES_KEY);
+    if (!raw) return [];
+    return JSON.parse(raw) || [];
+  } catch(e) { return []; }
+}
+
+function saveTypefaces(list) {
+  try {
+    localStorage.setItem(TYPEFACES_KEY, JSON.stringify(list));
+  } catch(e) {}
+}
+
+// Render a small "Aa Bb" preview canvas for a saved typeface
+function renderTypefacePreviewCanvas(tfData, canvas) {
+  const dpr = window.devicePixelRatio || 1;
+  const W = canvas.offsetWidth || 340;
+  const H = canvas.offsetHeight || 96;
+  canvas.width = W * dpr;
+  canvas.height = H * dpr;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  ctx.clearRect(0, 0, W, H);
+
+  const chars = ['a', 'b', 'c', 'd'];
+  const cols = tfData.gridCols || 4;
+  const rows = tfData.gridRows || 4;
+  const squareW = Math.floor(W / chars.length);
+  const pad = 14; // padding inside each letter square
+
+  chars.forEach((ch, i) => {
+    const sx = i * squareW;
+
+    // Vertical divider between letters
+    if (i > 0) {
+      ctx.fillStyle = '#e0e0e0';
+      ctx.fillRect(sx, 0, 1, H);
+    }
+
+    const ld = tfData.letters && tfData.letters[ch];
+    if (!ld) return;
+
+    const letterCols = ld.cols || cols;
+    const letterRows = ld.rows || rows;
+
+    // Scale letter to fit inside padding, preserving aspect ratio
+    const availW = squareW - pad * 2;
+    const availH = H - pad * 2;
+    const cellSize = Math.floor(Math.min(availW / letterCols, availH / letterRows));
+    if (cellSize < 1) return;
+
+    const renderW = letterCols * cellSize;
+    const renderH = letterRows * cellSize;
+    const ox = sx + Math.floor((squareW - renderW) / 2);
+    const oy = Math.floor((H - renderH) / 2);
+
+    ld.grid.forEach((row, ri) => {
+      row.forEach((cell, ci) => {
+        if (!cell || cell.shape === 'empty') return;
+        const shape = SHAPES[cell.shape];
+        if (!shape) return;
+        shape.draw(ctx, ox + ci * cellSize, oy + ri * cellSize, cellSize, cell.rotation || 0, cell.color || '#000000');
+      });
+    });
+  });
+}
+
+function buildTypefaceCard(tf, index) {
+  const card = document.createElement('div');
+  card.className = 'mytf-card';
+  card.dataset.index = index;
+
+  const preview = document.createElement('canvas');
+  preview.className = 'mytf-card-canvas';
+  card.appendChild(preview);
+
+  const info = document.createElement('div');
+  info.className = 'mytf-card-info';
+
+  const name = document.createElement('span');
+  name.className = 'mytf-card-name';
+  name.textContent = tf.name || 'Sin nombre';
+  info.appendChild(name);
+
+  const actions = document.createElement('div');
+  actions.className = 'mytf-card-actions';
+
+  const btnLoad = document.createElement('button');
+  btnLoad.className = 'btn btn-xs';
+  btnLoad.textContent = 'Abrir';
+  btnLoad.addEventListener('click', () => loadTypefaceFromSaved(index));
+  actions.appendChild(btnLoad);
+
+  const btnDel = document.createElement('button');
+  btnDel.className = 'btn btn-xs btn-secondary';
+  btnDel.textContent = 'Eliminar';
+  btnDel.addEventListener('click', () => deleteTypeface(index));
+  actions.appendChild(btnDel);
+
+  info.appendChild(actions);
+  card.appendChild(info);
+
+  // Render preview after appending to DOM so offsetWidth is valid
+  requestAnimationFrame(() => renderTypefacePreviewCanvas(tf, preview));
+  return card;
+}
+
+function renderMyTypefacesPanel() {
+  const list = loadTypefaces();
+  const grid = document.getElementById('mytfGrid');
+  const empty = document.getElementById('mytfEmpty');
+  if (!grid) return;
+  grid.innerHTML = '';
+  if (list.length === 0) {
+    empty.style.display = 'flex';
+    grid.style.display = 'none';
+  } else {
+    empty.style.display = 'none';
+    grid.style.display = 'grid';
+    list.forEach((tf, i) => grid.appendChild(buildTypefaceCard(tf, i)));
+  }
+}
+
+function openMyTypefacesPanel() {
+  const panel = document.getElementById('myTypefacesPanel');
+  const backdrop = document.getElementById('mytfBackdrop');
+  renderMyTypefacesPanel();
+  panel.classList.add('open');
+  backdrop.classList.add('open');
+  panel.setAttribute('aria-hidden', 'false');
+}
+
+function closeMyTypefacesPanel() {
+  const panel = document.getElementById('myTypefacesPanel');
+  const backdrop = document.getElementById('mytfBackdrop');
+  panel.classList.remove('open');
+  backdrop.classList.remove('open');
+  panel.setAttribute('aria-hidden', 'true');
+}
+
+function openSaveDialog() {
+  const dialog = document.getElementById('saveTfDialog');
+  const input = document.getElementById('saveTfName');
+  // Pre-fill with current name if active
+  input.value = state.currentTypefaceName || '';
+  dialog.classList.add('open');
+  dialog.setAttribute('aria-hidden', 'false');
+  input.focus();
+  input.select();
+}
+
+function closeSaveDialog() {
+  const dialog = document.getElementById('saveTfDialog');
+  dialog.classList.remove('open');
+  dialog.setAttribute('aria-hidden', 'true');
+}
+
+function confirmSaveTypeface() {
+  const input = document.getElementById('saveTfName');
+  const name = input.value.trim() || 'Sin nombre';
+  const list = loadTypefaces();
+
+  const snapshot = {
+    name,
+    savedAt: Date.now(),
+    letters: JSON.parse(JSON.stringify(state.letters)),
+    alternatives: JSON.parse(JSON.stringify(state.alternatives)),
+    gridCols: state.gridCols,
+    gridRows: state.gridRows,
+    xHeight: state.xHeight,
+    ascender: state.ascender,
+    descender: state.descender,
+    proportionsEnabled: state.proportionsEnabled
+  };
+
+  // If we have an active typeface ID, update it; otherwise push new
+  if (state.currentTypefaceId !== undefined && state.currentTypefaceId !== null) {
+    list[state.currentTypefaceId] = snapshot;
+  } else {
+    state.currentTypefaceId = list.length;
+    list.push(snapshot);
+  }
+  state.currentTypefaceName = name;
+  saveTypefaces(list);
+  updateTypefaceNameBadge();
+  closeSaveDialog();
+}
+
+function loadTypefaceFromSaved(index) {
+  const list = loadTypefaces();
+  const tf = list[index];
+  if (!tf) return;
+
+  if (!confirm(`¿Cargar "${tf.name}"? Se perderán los cambios no guardados.`)) return;
+
+  // Restore state
+  if (tf.letters) Object.keys(tf.letters).forEach(k => { state.letters[k] = tf.letters[k]; });
+  if (tf.alternatives) state.alternatives = JSON.parse(JSON.stringify(tf.alternatives));
+  if (typeof tf.gridCols === 'number') state.gridCols = tf.gridCols;
+  if (typeof tf.gridRows === 'number') state.gridRows = tf.gridRows;
+  if (typeof tf.xHeight === 'number') state.xHeight = tf.xHeight;
+  if (typeof tf.ascender === 'number') state.ascender = tf.ascender;
+  if (typeof tf.descender === 'number') state.descender = tf.descender;
+  if (typeof tf.proportionsEnabled === 'boolean') state.proportionsEnabled = tf.proportionsEnabled;
+
+  state.currentTypefaceId = index;
+  state.currentTypefaceName = tf.name;
+
+  saveToHistory();
+  updateGridInfo();
+  setupCanvas();
+  renderAlphabetGrid();
+  renderEditor();
+  renderPreview();
+  updateTypefaceNameBadge();
+  closeMyTypefacesPanel();
+}
+
+function deleteTypeface(index) {
+  const list = loadTypefaces();
+  const tf = list[index];
+  if (!confirm(`¿Eliminar "${tf.name}"?`)) return;
+  list.splice(index, 1);
+  saveTypefaces(list);
+  // Adjust active ID
+  if (state.currentTypefaceId === index) {
+    state.currentTypefaceId = null;
+    state.currentTypefaceName = null;
+    updateTypefaceNameBadge();
+  } else if (state.currentTypefaceId > index) {
+    state.currentTypefaceId--;
+  }
+  renderMyTypefacesPanel();
+}
+
+function newTypeface() {
+  if (!confirm('¿Crear nueva tipografía? Se perderán los cambios no guardados.')) return;
+
+  state.gridCols = 4;
+  state.gridRows = 4;
+  state.xHeight = 2;
+  state.ascender = 1;
+  state.descender = 1;
+  state.proportionsEnabled = false;
+  state.alternatives = {};
+  state.currentTypefaceId = null;
+  state.currentTypefaceName = null;
+
+  ALPHABET.forEach(letter => { state.letters[letter] = initLetter(letter); });
+  SYMBOLS.forEach(sym => { state.letters[sym] = initLetter(sym); });
+
+  state.history = [];
+  state.historyIndex = -1;
+  try { localStorage.removeItem(STORAGE_KEY); } catch(e) {}
+  saveToHistory();
+  updateGridInfo();
+  setupCanvas();
+  renderAlphabetGrid();
+  renderEditor();
+  renderPreview();
+  updateTypefaceNameBadge();
+}
+
+function updateTypefaceNameBadge() {
+  const badge = document.getElementById('typefaceNameBadge');
+  if (!badge) return;
+  badge.textContent = state.currentTypefaceName || '';
+  badge.style.display = state.currentTypefaceName ? 'inline' : 'none';
+}
+
+// Wire up event listeners for the panel
+document.getElementById('btnMyTypefaces')?.addEventListener('click', openMyTypefacesPanel);
+document.getElementById('btnCloseMytf')?.addEventListener('click', closeMyTypefacesPanel);
+document.getElementById('mytfBackdrop')?.addEventListener('click', closeMyTypefacesPanel);
+document.getElementById('btnSaveTypeface')?.addEventListener('click', openSaveDialog);
+document.getElementById('btnSaveTfCancel')?.addEventListener('click', closeSaveDialog);
+document.getElementById('btnSaveTfConfirm')?.addEventListener('click', confirmSaveTypeface);
+document.getElementById('btnNewTypeface')?.addEventListener('click', newTypeface);
+document.getElementById('saveTfName')?.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') confirmSaveTypeface();
+  if (e.key === 'Escape') closeSaveDialog();
+});
+
+// Init state fields
+state.currentTypefaceId = null;
+state.currentTypefaceName = null;
 
 init();

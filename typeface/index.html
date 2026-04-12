@@ -4,6 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Editor Tipográfico</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Wix+Madefor+Display:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <script src="https://cdn.jsdelivr.net/npm/opentype.js/dist/opentype.min.js"></script>
 </head>
@@ -16,11 +19,22 @@
       <a href="../index.html" class="nav-link">Inicio</a>
       <a href="../drawing/index.html" class="nav-link">Dibujo libre</a>
       <a href="community.html" class="nav-link">Creaciones</a>
+      <button id="btnMyTypefaces" class="nav-link nav-btn">Mis tipografías</button>
     </div>
   </nav>
 
   <!-- Editor + alphabet -->
   <main class="editor-main">
+
+    <!-- Left sidebar -->
+    <div class="editor-left-bar">
+      <span class="typeface-name-badge" id="typefaceNameBadge"></span>
+      <button id="btnNewTypeface" class="btn-new-typeface-full">
+        <span class="btn-new-plus">+</span>
+        <span>Nueva tipografía</span>
+      </button>
+    </div>
+
     <section class="editor">
       <div class="editor-header">
         <span class="current-letter" id="currentLetterLabel">A</span>
@@ -51,7 +65,6 @@
 
     <!-- Letra -->
     <div class="bar-group">
-      <span class="bar-label">Letra</span>
       <div class="letter-nav">
         <button id="btnPrevLetter" class="btn-arrow" title="Letra anterior">←</button>
         <select id="letterSelect" class="select-letter"></select>
@@ -62,13 +75,12 @@
 
     <!-- Grilla -->
     <div class="bar-group">
-      <span class="bar-label">Col</span>
       <div class="stepper">
         <button id="btnDecCols" class="btn-stepper">−</button>
         <span id="colsValue">4</span>
         <button id="btnIncCols" class="btn-stepper">+</button>
       </div>
-      <span class="bar-label">Fil</span>
+      <span class="bar-sep">×</span>
       <div class="stepper">
         <button id="btnDecRows" class="btn-stepper">−</button>
         <span id="rowsValue">4</span>
@@ -81,9 +93,9 @@
     </div>
 
     <!-- Pincel -->
-    <div class="bar-group">
-      <span class="bar-label">Modo Pincel</span>
-      <label class="toggle-switch">
+    <div class="bar-group bar-group-brush">
+      <span class="bar-label">Pincel</span>
+      <label class="toggle-switch" title="Modo pincel">
         <input type="checkbox" id="toggleBrush" checked>
         <span class="toggle-slider"></span>
       </label>
@@ -97,7 +109,7 @@
     </div>
 
     <!-- Celda -->
-    <div class="bar-group">
+    <div class="bar-group bar-group-preview">
       <div id="cellControls" class="cell-controls" style="display: none;">
         <select id="shapeSelect" class="select select-sm"></select>
         <button id="btnRotate" class="btn">90°</button>
@@ -114,7 +126,11 @@
 
     <!-- Acciones -->
     <div class="bar-group bar-actions">
-      <button id="btnExportFont" class="btn">Descargar OTF</button>
+      <button id="btnSaveTypeface" class="btn btn-save-typeface">Guardar</button>
+      <div class="publish-wrap">
+        <button id="btnExportFont" class="btn btn-publish">Publicar</button>
+        <span id="publishError" class="publish-error" aria-live="polite"></span>
+      </div>
       <button id="btnReset" class="btn btn-secondary">Reset</button>
     </div>
 
@@ -155,6 +171,36 @@
         autocomplete="off"
         spellcheck="false"
       >
+    </div>
+  </div>
+
+  <!-- My Typefaces Panel -->
+  <div id="myTypefacesPanel" class="mytf-panel" aria-hidden="true">
+    <div class="mytf-header">
+      <span class="mytf-title">Mis tipografías</span>
+      <button id="btnCloseMytf" class="mytf-close" title="Cerrar">
+        <svg viewBox="0 0 16 16" fill="currentColor" width="14" height="14"><path d="M12.5 3.5l-9 9M3.5 3.5l9 9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+    <div class="mytf-body">
+      <div class="mytf-empty" id="mytfEmpty">
+        <span>Aún no has guardado ninguna tipografía.</span>
+        <span>Usa el botón <strong>Guardar tipografía</strong> para empezar.</span>
+      </div>
+      <div class="mytf-grid" id="mytfGrid"></div>
+    </div>
+  </div>
+  <div id="mytfBackdrop" class="mytf-backdrop"></div>
+
+  <!-- Save Typeface Dialog -->
+  <div id="saveTfDialog" class="savetf-dialog" aria-hidden="true">
+    <div class="savetf-box">
+      <p class="savetf-label">Nombre de la tipografía</p>
+      <input id="saveTfName" class="savetf-input" type="text" placeholder="Mi tipografía" maxlength="40" autocomplete="off" spellcheck="false">
+      <div class="savetf-actions">
+        <button id="btnSaveTfCancel" class="btn btn-secondary">Cancelar</button>
+        <button id="btnSaveTfConfirm" class="btn">Guardar</button>
+      </div>
     </div>
   </div>
 
