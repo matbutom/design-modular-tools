@@ -631,8 +631,13 @@ function setupEventListeners() {
     state.brushColor = e.target.value;
   });
   
-  // Rotar forma del pincel con tecla R
+  // Rotar forma del pincel con tecla R / Deshacer con Ctrl+Z
   document.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
+      e.preventDefault();
+      undo();
+      return;
+    }
     if (e.key === 'r' || e.key === 'R') {
       if (state.brushMode) {
         const shape = SHAPES[state.brushShape];
