@@ -49,6 +49,35 @@ const SHAPES = {
 };
 
 // ========================================
+// HISTORIAL (UNDO)
+// ========================================
+
+const MAX_HISTORY = 50;
+const history = [];
+
+function pushHistory() {
+  history.push(state.grid.map(row => row.map(cell => ({ ...cell }))));
+  if (history.length > MAX_HISTORY) history.shift();
+}
+
+function undo() {
+  if (history.length === 0) return;
+  state.grid = history.pop();
+  // Ajustar si la grilla guardada tiene distinto tamaño
+  state.rows = state.grid.length;
+  state.cols = state.grid[0]?.length ?? state.cols;
+  colsValue.value = state.cols;
+  rowsValue.value = state.rows;
+  setupCanvas();
+  if (state.selectedCell) {
+    const { row, col } = state.selectedCell;
+    if (row >= state.rows || col >= state.cols) state.selectedCell = null;
+  }
+  updateCellControls();
+  renderEditor();
+}
+
+// ========================================
 // ESTADO GLOBAL
 // ========================================
 
@@ -277,6 +306,7 @@ function showContextMenu(x, y, row, col) {
   
   const emptyItem = createContextMenuItem('empty', 0);
   emptyItem.addEventListener('click', () => {
+    pushHistory();
     state.grid[row][col] = { shape: 'empty', rotation: 0, color: '#000000' };
     hideContextMenu();
     renderEditor();
@@ -289,6 +319,7 @@ function showContextMenu(x, y, row, col) {
     for (let rotation = 0; rotation < shape.rotations; rotation++) {
       const item = createContextMenuItem(shapeId, rotation);
       item.addEventListener('click', () => {
+        pushHistory();
         state.grid[row][col] = { shape: shapeId, rotation, color: '#000000' };
         hideContextMenu();
         state.selectedCell = { row, col };
@@ -357,6 +388,7 @@ function updateCellControls() {
 }
 
 function resizeGrid(newCols, newRows) {
+  pushHistory();
   const oldGrid = state.grid;
   const newGrid = [];
   
@@ -383,8 +415,8 @@ function resizeGrid(newCols, newRows) {
     }
   }
   
-  colsValue.textContent = newCols;
-  rowsValue.textContent = newRows;
+  colsValue.value = newCols;
+  rowsValue.value = newRows;
   setupCanvas();
 }
 
@@ -414,6 +446,100 @@ function exportPNG() {
   link.click();
 }
 
+function exportSVG() {
+  const dpr = window.devicePixelRatio || 1;
+  const w = editorCanvas.width / dpr;
+  const h = editorCanvas.height / dpr;
+  const cellSize = w / state.cols;
+
+  const ns = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(ns, 'svg');
+  svg.setAttribute('xmlns', ns);
+  svg.setAttribute('width', w);
+  svg.setAttribute('height', h);
+  svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
+
+  // Fondo blanco
+  const bg = document.createElementNS(ns, 'rect');
+  bg.setAttribute('width', w);
+  bg.setAttribute('height', h);
+  bg.setAttribute('fill', '#ffffff');
+  svg.appendChild(bg);
+
+  // Grupo de formas
+  const shapesGroup = document.createElementNS(ns, 'g');
+  state.grid.forEach((row, rowIndex) => {
+    row.forEach((cell, colIndex) => {
+      if (cell.shape === 'empty') return;
+      const x = colIndex * cellSize;
+      const y = rowIndex * cellSize;
+      const s = cellSize;
+      const color = cell.color || '#000000';
+      let el;
+
+      if (cell.shape === 'square') {
+        el = document.createElementNS(ns, 'rect');
+        el.setAttribute('x', x);
+        el.setAttribute('y', y);
+        el.setAttribute('width', s);
+        el.setAttribute('height', s);
+        el.setAttribute('fill', color);
+
+      } else if (cell.shape === 'circle') {
+        el = document.createElementNS(ns, 'circle');
+        el.setAttribute('cx', x + s / 2);
+        el.setAttribute('cy', y + s / 2);
+        el.setAttribute('r', s / 2);
+        el.setAttribute('fill', color);
+
+      } else if (cell.shape === 'quarter') {
+        // Arco desde (x+s, y) hasta (x, y+s) pasando por el cuadrante inferior-derecho
+        // con rotación aplicada alrededor del centro de la celda
+        el = document.createElementNS(ns, 'path');
+        el.setAttribute('d', `M ${x},${y} L ${x + s},${y} A ${s},${s} 0 0,1 ${x},${y + s} Z`);
+        el.setAttribute('fill', color);
+        if (cell.rotation !== 0) {
+          el.setAttribute('transform', `rotate(${cell.rotation * 90}, ${x + s / 2}, ${y + s / 2})`);
+        }
+      }
+
+      if (el) shapesGroup.appendChild(el);
+    });
+  });
+  svg.appendChild(shapesGroup);
+
+  // Grilla
+  const gridGroup = document.createElementNS(ns, 'g');
+  gridGroup.setAttribute('stroke', '#d0d0d0');
+  gridGroup.setAttribute('stroke-width', '1');
+  for (let i = 0; i <= state.cols; i++) {
+    const line = document.createElementNS(ns, 'line');
+    line.setAttribute('x1', i * cellSize);
+    line.setAttribute('y1', 0);
+    line.setAttribute('x2', i * cellSize);
+    line.setAttribute('y2', h);
+    gridGroup.appendChild(line);
+  }
+  for (let i = 0; i <= state.rows; i++) {
+    const line = document.createElementNS(ns, 'line');
+    line.setAttribute('x1', 0);
+    line.setAttribute('y1', i * cellSize);
+    line.setAttribute('x2', w);
+    line.setAttribute('y2', i * cellSize);
+    gridGroup.appendChild(line);
+  }
+  svg.appendChild(gridGroup);
+
+  const serializer = new XMLSerializer();
+  const svgStr = serializer.serializeToString(svg);
+  const blob = new Blob([svgStr], { type: 'image/svg+xml' });
+  const link = document.createElement('a');
+  link.download = 'dibujo-modular.svg';
+  link.href = URL.createObjectURL(blob);
+  link.click();
+  URL.revokeObjectURL(link.href);
+}
+
 // ========================================
 // EVENT LISTENERS
 // ========================================
@@ -436,6 +562,7 @@ function setupEventListeners() {
     if (!cell) return;
     
     if (state.brushMode) {
+      pushHistory();
       state.isPainting = true;
       state.isErasing = e.shiftKey;
       paintCell(cell.row, cell.col);
@@ -519,7 +646,7 @@ function setupEventListeners() {
   
   // Controles de grilla
   btnIncCols.addEventListener('click', () => {
-    if (state.cols < 20) {
+    if (state.cols < 100) {
       resizeGrid(state.cols + 1, state.rows);
       renderEditor();
     }
@@ -534,7 +661,7 @@ function setupEventListeners() {
   });
   
   btnIncRows.addEventListener('click', () => {
-    if (state.rows < 20) {
+    if (state.rows < 100) {
       resizeGrid(state.cols, state.rows + 1);
       renderEditor();
     }
@@ -548,9 +675,36 @@ function setupEventListeners() {
     }
   });
   
+  // Input numérico de columnas y filas
+  function applyInputValue(input, getCurrent, applyFn) {
+    const val = parseInt(input.value, 10);
+    if (!isNaN(val) && val >= 2 && val <= 100) {
+      applyFn(val);
+    } else {
+      input.value = getCurrent();
+    }
+  }
+
+  colsValue.addEventListener('change', () => {
+    applyInputValue(colsValue, () => state.cols, (val) => {
+      resizeGrid(val, state.rows);
+      updateCellControls();
+      renderEditor();
+    });
+  });
+
+  rowsValue.addEventListener('change', () => {
+    applyInputValue(rowsValue, () => state.rows, (val) => {
+      resizeGrid(state.cols, val);
+      updateCellControls();
+      renderEditor();
+    });
+  });
+
   // Controles de celda
   shapeSelect.addEventListener('change', (e) => {
     if (state.selectedCell) {
+      pushHistory();
       const { row, col } = state.selectedCell;
       state.grid[row][col].shape = e.target.value;
       state.grid[row][col].rotation = 0;
@@ -563,8 +717,9 @@ function setupEventListeners() {
       const { row, col } = state.selectedCell;
       const cell = state.grid[row][col];
       const shape = SHAPES[cell.shape];
-      
+
       if (shape && shape.rotations > 1) {
+        pushHistory();
         cell.rotation = (cell.rotation + 1) % shape.rotations;
         renderEditor();
       }
@@ -574,6 +729,7 @@ function setupEventListeners() {
   // Botones
   document.getElementById('btnClear').addEventListener('click', () => {
     if (confirm('¿Limpiar todo el lienzo?')) {
+      pushHistory();
       state.grid = initGrid(state.cols, state.rows);
       state.selectedCell = null;
       updateCellControls();
@@ -582,6 +738,7 @@ function setupEventListeners() {
   });
   
   document.getElementById('btnExport').addEventListener('click', exportPNG);
+  document.getElementById('btnExportSVG').addEventListener('click', exportSVG);
 }
 
 // ========================================

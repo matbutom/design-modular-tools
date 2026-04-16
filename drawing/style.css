@@ -236,6 +236,29 @@ body {
   font-weight: 500;
 }
 
+.stepper-input {
+  width: 40px;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 500;
+  font-family: inherit;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg);
+  color: inherit;
+  padding: 2px 4px;
+}
+
+.stepper-input:focus {
+  outline: none;
+  border-color: #000;
+}
+
+.stepper-input::-webkit-inner-spin-button,
+.stepper-input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+}
+
 .cell-controls {
   display: flex;
   flex-direction: column;

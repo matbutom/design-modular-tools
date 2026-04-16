@@ -15,6 +15,7 @@
       </div>
       <div class="header-actions">
         <button id="btnExport" class="btn">Exportar PNG</button>
+        <button id="btnExportSVG" class="btn">Exportar SVG</button>
         <button id="btnClear" class="btn btn-secondary">Limpiar</button>
       </div>
     </header>
@@ -28,7 +29,7 @@
               <label>Columnas</label>
               <div class="stepper">
                 <button id="btnDecCols" class="btn-stepper">−</button>
-                <span id="colsValue">8</span>
+                <input type="number" id="colsValue" class="stepper-input" value="8" min="2" max="100">
                 <button id="btnIncCols" class="btn-stepper">+</button>
               </div>
             </div>
@@ -36,7 +37,7 @@
               <label>Filas</label>
               <div class="stepper">
                 <button id="btnDecRows" class="btn-stepper">−</button>
-                <span id="rowsValue">8</span>
+                <input type="number" id="rowsValue" class="stepper-input" value="8" min="2" max="100">
                 <button id="btnIncRows" class="btn-stepper">+</button>
               </div>
             </div>
