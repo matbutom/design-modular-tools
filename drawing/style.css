@@ -27,6 +27,9 @@ body {
 .container {
   max-width: 1600px;
   margin: 0 auto;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
 /* Header */
@@ -101,14 +104,21 @@ body {
 /* Main Layout */
 .main {
   display: grid;
-  grid-template-columns: 240px 1fr;
+  grid-template-columns: 240px 1fr 200px;
   gap: 1px;
   background: var(--border);
-  min-height: calc(100vh - 61px);
+  /* Ocupa el resto de la pantalla; sidebar y editor no estiran la página */
+  flex: 1;
+  min-height: 0;
+}
+
+.sidebar,
+.gallery {
+  overflow-y: auto;
 }
 
 /* Panels */
-.sidebar, .editor {
+.sidebar, .editor, .gallery {
   background: var(--bg);
   padding: 20px 16px;
 }
@@ -159,6 +169,7 @@ body {
   align-items: center;
   justify-content: center;
   padding: 32px 24px;
+  overflow: auto;
 }
 
 .canvas-container {
@@ -314,8 +325,22 @@ body {
 
 /* Responsive */
 @media (max-width: 768px) {
+  /* Apilado: vuelve el scroll normal de la página */
+  .container {
+    height: auto;
+  }
+
   .main {
     grid-template-columns: 1fr;
+  }
+
+  .sidebar,
+  .gallery {
+    overflow-y: visible;
+  }
+
+  .gallery-list {
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
   }
   
   .header {
@@ -448,5 +473,241 @@ body {
 .shape-btn svg {
   width: 100%;
   height: 100%;
+  display: block;
+}
+
+/* ── Paleta de colores ── */
+.palette-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 4px;
+}
+
+.palette-swatch {
+  aspect-ratio: 1;
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  padding: 0;
+  transition: transform 0.1s, box-shadow 0.1s;
+}
+
+.palette-swatch:hover {
+  border-color: var(--border-hover);
+  transform: scale(1.08);
+}
+
+.palette-swatch.active {
+  border-color: var(--bg);
+  box-shadow: 0 0 0 2px var(--fg);
+}
+
+.palette-add {
+  background: var(--bg);
+  color: #666;
+  font-family: inherit;
+  font-size: 16px;
+  line-height: 1;
+  border-style: dashed;
+}
+
+.palette-add:hover {
+  color: var(--fg);
+  background: var(--hover-bg);
+}
+
+/* ── Galería de dibujos ── */
+.gallery-header {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.gallery-header h2 {
+  margin-right: auto;
+}
+
+.gallery-header h2 {
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #666;
+}
+
+.btn-small {
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--fg);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 11px;
+  border-radius: var(--radius);
+  transition: all 0.15s ease;
+}
+
+.btn-small:hover {
+  background: var(--hover-bg);
+  border-color: var(--border-hover);
+}
+
+.gallery .btn-block {
+  margin-top: 0;
+  margin-bottom: 8px;
+}
+
+.gallery-list {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.gallery-item {
+  position: relative;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 6px;
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+
+.gallery-item:hover {
+  border-color: var(--border-hover);
+}
+
+.gallery-item.active {
+  border-color: var(--fg);
+  box-shadow: 0 0 0 1px var(--fg);
+}
+
+.gallery-item canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: 1px solid var(--hover-bg);
+}
+
+.gallery-caption {
+  font-size: 11px;
+  color: #999;
+  margin-top: 4px;
+}
+
+.gallery-delete {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 22px;
+  height: 22px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+  color: var(--fg);
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.gallery-item:hover .gallery-delete {
+  opacity: 1;
+}
+
+.gallery-delete:hover {
+  background: var(--hover-bg);
+}
+
+/* En pantallas táctiles no hay hover: mostrar siempre el botón de borrar */
+@media (hover: none) {
+  .gallery-delete {
+    opacity: 1;
+  }
+}
+
+/* ── Título de panel con ayuda "?" ── */
+.panel-title {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.panel-title h2 {
+  margin-bottom: 0;
+}
+
+kbd {
+  display: inline-block;
+  min-width: 18px;
+  padding: 0 4px;
+  margin-left: 4px;
+  border: 1px solid var(--border);
+  border-bottom-width: 2px;
+  border-radius: 3px;
+  font-family: inherit;
+  font-size: 10px;
+  line-height: 15px;
+  text-align: center;
+  color: var(--fg);
+  background: var(--bg);
+  vertical-align: 1px;
+}
+
+.help-btn {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: var(--bg);
+  color: #666;
+  font-family: inherit;
+  font-size: 11px;
+  line-height: 1;
+  cursor: help;
+  transition: all 0.15s ease;
+}
+
+.help-btn:hover,
+.help-btn:focus {
+  color: var(--fg);
+  border-color: var(--fg);
+  outline: none;
+}
+
+/* Se abre al pasar el mouse o al tocar el "?" (foco), y se cierra al salir */
+.help-pop {
+  display: none;
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  z-index: 10;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  font-size: 12px;
+  line-height: 1.5;
+  color: #444;
+}
+
+.help-pop b {
+  font-weight: 600;
+  color: var(--fg);
+}
+
+.help-btn:hover + .help-pop,
+.help-btn:focus + .help-pop {
   display: block;
 }

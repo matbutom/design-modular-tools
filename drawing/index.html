@@ -37,7 +37,7 @@
               <label>Filas</label>
               <div class="stepper">
                 <button id="btnDecRows" class="btn-stepper">−</button>
-                <span id="rowsValue">8</span>
+                <input type="number" id="rowsValue" class="stepper-input" value="8" min="2" max="100">
                 <button id="btnIncRows" class="btn-stepper">+</button>
               </div>
             </div>
@@ -45,7 +45,13 @@
         </section>
 
         <section class="panel">
-          <h2>Modo pincel</h2>
+          <div class="panel-title">
+            <h2>Modo pincel <kbd>P</kbd></h2>
+            <button type="button" class="help-btn" aria-label="Cómo funciona">?</button>
+            <div class="help-pop" role="tooltip">
+              Arrastra sobre el lienzo para pintar con la forma y el color activos. <b>R</b> rota la forma. <b>Shift</b> o <b>click derecho</b> para borrar.
+            </div>
+          </div>
           <div class="control-row">
             <label>Activar</label>
             <label class="toggle-switch">
@@ -55,17 +61,67 @@
           </div>
           <div id="brushControls" style="display: none; margin-top: 12px;">
             <div class="control-row">
-              <label>Color</label>
-              <input type="color" id="brushColor" class="color-input" value="#000000">
-            </div>
-            <div class="control-row">
               <label>Forma</label>
               <div id="brushShapePicker" class="shape-picker"></div>
             </div>
-            <div class="hint" style="margin-top: 8px;">
-              Arrastra el mouse para pintar. Shift para borrar.
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-title">
+            <h2>Recolorear</h2>
+            <button type="button" class="help-btn" aria-label="Cómo funciona">?</button>
+            <div class="help-pop" role="tooltip">
+              Click o arrastra sobre las formas para aplicarles el color activo. <b>Alt + click</b> toma el color de una celda. <b>Click derecho</b> para borrar.
             </div>
           </div>
+          <div class="control-row">
+            <label>Activar</label>
+            <label class="toggle-switch">
+              <input type="checkbox" id="toggleRecolor">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-title">
+            <h2>Seleccionar <kbd>V</kbd></h2>
+            <button type="button" class="help-btn" aria-label="Cómo funciona">?</button>
+            <div class="help-pop" role="tooltip">
+              Arrastra sobre el lienzo para seleccionar un área. <b>Ctrl/⌘ + A</b> selecciona todo.<br><br>Arrastra la selección o usa las <b>flechas</b> para moverla (<b>Shift</b> = 5 celdas). <b>Enter</b>, <b>Esc</b> o click fuera para soltar. <b>Supr</b> para borrar.
+            </div>
+          </div>
+          <div class="control-row">
+            <label>Activar</label>
+            <label class="toggle-switch">
+              <input type="checkbox" id="toggleSelect">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-title">
+            <h2>Paleta</h2>
+            <button type="button" class="help-btn" aria-label="Cómo funciona">?</button>
+            <div class="help-pop" role="tooltip">
+              <b>Click</b> en un color para usarlo. <b>+</b> guarda el color activo. <b>Click derecho</b> quita un color.<br><br><b>Generar desde imagen</b> reemplaza la paleta con los colores principales de una imagen (Ctrl+Z la recupera).
+            </div>
+          </div>
+          <div id="paletteGrid" class="palette-grid"></div>
+          <div class="control-row" style="margin-top: 12px;">
+            <label>Color activo</label>
+            <input type="color" id="brushColor" class="color-input" value="#000000">
+          </div>
+          <div class="control-row" style="margin-top: 12px;">
+            <label>Colores</label>
+            <div class="stepper">
+              <input type="number" id="paletteCount" class="stepper-input" value="8" min="2" max="24">
+            </div>
+          </div>
+          <button id="btnPaletteFromImage" class="btn btn-block">Generar desde imagen</button>
+          <input type="file" id="paletteImageInput" accept="image/*" hidden>
         </section>
 
         <section class="panel">
@@ -91,6 +147,23 @@
           <canvas id="editorCanvas"></canvas>
         </div>
       </section>
+
+      <aside class="gallery">
+        <div class="gallery-header">
+          <h2>Dibujos</h2>
+          <button type="button" class="help-btn" aria-label="Cómo funciona">?</button>
+          <div class="help-pop" role="tooltip">
+            <b>Guardar dibujo</b> lo agrega a la lista. <b>Click</b> en una miniatura para seguir editándolo; Ctrl+Z vuelve a lo que tenías antes de abrirlo. <b>×</b> lo borra.
+          </div>
+          <button id="btnNewDrawing" class="btn-small" title="Empezar un lienzo vacío">+ Nuevo</button>
+        </div>
+        <button id="btnSaveDrawing" class="btn btn-block">Guardar dibujo</button>
+        <button id="btnSaveAsNew" class="btn btn-block btn-secondary" style="display: none;">Guardar como nuevo</button>
+        <div id="galleryEmpty" class="hint" style="margin-top: 12px;">
+          Aún no hay dibujos guardados.
+        </div>
+        <div id="galleryList" class="gallery-list"></div>
+      </aside>
     </main>
   </div>
 
